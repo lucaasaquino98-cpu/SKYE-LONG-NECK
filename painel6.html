@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKYE | Painel Administrativo</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@200;300;700;800;900&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--blue:#1a6aff;--violet:#6020cc;--cyan:#40e0ff;--glass:rgba(4,6,18,0.62);--glass2:rgba(10,14,35,0.55);--border:rgba(80,160,255,0.1);--border2:rgba(255,255,255,0.06);--text:#dde8ff;--muted:rgba(180,210,255,0.45);--sidebar-w:230px;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Sora',sans-serif;background:#02040e;color:var(--text);min-height:100vh;overflow-x:hidden;}
+.bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.bg-grad{position:absolute;inset:0;background:radial-gradient(ellipse at 15% 50%,rgba(26,106,255,0.06) 0%,transparent 60%),radial-gradient(ellipse at 85% 20%,rgba(96,32,204,0.05) 0%,transparent 55%),radial-gradient(ellipse at 50% 100%,rgba(64,224,255,0.04) 0%,transparent 50%);}
+.star{position:absolute;background:#fff;border-radius:50%;animation:twinkle var(--d) ease-in-out infinite alternate;opacity:0;}
+@keyframes twinkle{from{opacity:0;transform:scale(.5);}to{opacity:var(--o);transform:scale(1);}}
+.sidebar{position:fixed;left:0;top:0;width:var(--sidebar-w);height:100%;z-index:200;background:rgba(2,4,14,0.85);backdrop-filter:blur(20px);border-right:1px solid var(--border);display:flex;flex-direction:column;box-shadow:4px 0 30px rgba(0,0,0,0.5);}
+.sidebar-brand{padding:24px 20px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.brand-letters{display:flex;align-items:baseline;gap:1px;animation:glitchIdle 9s ease-in-out 3s infinite;}
+@keyframes glitchIdle{0%,93%,100%{transform:translate(0);filter:none;}94%{transform:translate(-1px,0);filter:hue-rotate(90deg);}95%{transform:translate(1px,0);filter:hue-rotate(-90deg);}96%{transform:translate(0,1px);filter:none;}97%{transform:translate(-1px,0);filter:hue-rotate(45deg);}}
+.bl{font-family:'Exo 2',sans-serif;font-weight:900;font-size:28px;line-height:1;color:#c8d8ff;display:inline-block;}
+.bl.hl{color:transparent;background:linear-gradient(135deg,#40aaff 0%,#a060ff 60%,#40e0ff 100%);-webkit-background-clip:text;background-clip:text;background-size:200% 200%;animation:gradShift 3s ease-in-out 1s infinite alternate;filter:drop-shadow(0 0 8px rgba(80,160,255,0.6));}
+@keyframes gradShift{0%{background-position:0% 50%;}100%{background-position:100% 50%;}}
+.brand-orbit{position:relative;width:34px;height:14px;flex-shrink:0;}
+.brand-orbit-ring{position:absolute;inset:0;border:1px solid rgba(60,160,255,0.25);border-radius:50%;animation:orbitSpin 7s linear infinite;}
+.brand-orbit-ring::after{content:'';position:absolute;top:-2px;left:50%;width:4px;height:4px;background:#60c0ff;border-radius:50%;box-shadow:0 0 6px #60c0ff;transform:translateX(-50%);}
+@keyframes orbitSpin{from{transform:rotateX(70deg) rotate(0deg);}to{transform:rotateX(70deg) rotate(360deg);}}
+.brand-tag-side{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(180,210,255,0.2);margin-top:2px;}
+.tenant-badge{margin:12px 12px 0;padding:10px 12px;background:rgba(26,106,255,0.08);border:1px solid rgba(26,106,255,0.15);border-radius:10px;display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.tenant-avatar{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--violet));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;}
+.tenant-info{min-width:0;flex:1;}
+.tenant-name{font-size:12px;font-weight:600;color:#e8f0ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tenant-email{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.5px;}
+.sidebar-nav{flex:1;padding:16px 0;overflow-y:auto;}
+.nav-section-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(180,210,255,0.2);padding:14px 20px 6px;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 20px;margin:2px 10px;border-radius:10px;color:rgba(180,210,255,0.55);font-size:13.5px;font-weight:400;text-decoration:none;cursor:pointer;transition:all .22s;border:1px solid transparent;position:relative;overflow:hidden;user-select:none;}
+.nav-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--blue),var(--cyan));transform:scaleY(0);transition:transform .22s;border-radius:0 2px 2px 0;}
+.nav-item:hover{background:rgba(80,140,255,0.08);color:rgba(200,225,255,0.85);border-color:rgba(80,140,255,0.12);}
+.nav-item.active{background:rgba(26,106,255,0.14);color:#fff;font-weight:500;border-color:rgba(80,160,255,0.2);box-shadow:0 2px 16px rgba(26,106,255,0.15);}
+.nav-item.active::before{transform:scaleY(1);}
+.sidebar-status{padding:16px;border-top:1px solid var(--border);flex-shrink:0;}
+.status-toggle-wrap{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;transition:all .25s;display:flex;align-items:center;justify-content:space-between;}
+.status-toggle-wrap:hover{background:rgba(255,255,255,0.07);}
+.status-info{display:flex;flex-direction:column;gap:3px;}
+.status-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+.status-val{font-size:13px;font-weight:600;color:#ef4444;transition:color .3s;}
+.status-val.aberto{color:#22c55e;}
+.pill-switch{width:44px;height:24px;border-radius:20px;background:#ef4444;position:relative;transition:background .3s;flex-shrink:0;box-shadow:inset 0 1px 4px rgba(0,0,0,0.3);}
+.pill-switch.on{background:#22c55e;}
+.pill-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:left .28s ease;box-shadow:0 1px 4px rgba(0,0,0,0.25);}
+.pill-switch.on .pill-knob{left:23px;}
+.sidebar-logout{border-top:1px solid var(--border);padding:10px;flex-shrink:0;}
+.logout-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:rgba(239,68,68,0.7);font-size:13px;cursor:pointer;transition:all .22s;}
+.logout-btn:hover{background:rgba(239,68,68,0.1);color:#ef4444;}
+.topbar{position:fixed;top:0;left:var(--sidebar-w);right:0;height:60px;z-index:150;background:rgba(2,4,14,0.8);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;}
+.topbar-title{font-family:'Exo 2',sans-serif;font-weight:700;font-size:16px;color:rgba(200,220,255,0.7);letter-spacing:1px;}
+.topbar-right{display:flex;align-items:center;gap:14px;}
+.topbar-time{font-size:12px;color:var(--muted);letter-spacing:1px;font-family:'Exo 2',sans-serif;}
+.topbar-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--violet));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;box-shadow:0 0 12px rgba(26,106,255,0.3);cursor:pointer;flex-shrink:0;}
+.main{margin-left:var(--sidebar-w);padding-top:60px;min-height:100vh;padding-bottom:70px;position:relative;z-index:1;}
+.page{display:none;}.page.active{display:block;}
+.page-inner{padding:28px 32px;}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.page-header h1{font-family:'Exo 2',sans-serif;font-weight:700;font-size:22px;color:#e8f0ff;letter-spacing:.5px;display:flex;align-items:center;gap:10px;}
+.glass-card{background:var(--glass2);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4);transition:transform .2s,box-shadow .2s,border-color .2s;}
+.glass-card:hover{transform:translateY(-3px);box-shadow:0 14px 40px rgba(0,0,0,0.5);border-color:rgba(80,160,255,0.2);}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;}
+.stat-card{padding:20px 22px;border-radius:16px;position:relative;overflow:hidden;background:var(--glass2);border:1px solid var(--border);transition:transform .2s,box-shadow .2s,border-color .2s;}
+.stat-card:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.5);border-color:rgba(80,160,255,0.22);}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(80,160,255,0.4),transparent);}
+.stat-icon-wrap{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
+.stat-icon-wrap.blue{background:rgba(26,106,255,0.15);color:var(--blue);}
+.stat-icon-wrap.green{background:rgba(34,197,94,0.15);color:#22c55e;}
+.stat-icon-wrap.purple{background:rgba(168,85,247,0.15);color:#a855f7;}
+.stat-icon-wrap.cyan{background:rgba(64,224,255,0.12);color:var(--cyan);}
+.stat-icon-wrap.yellow{background:rgba(251,191,36,0.15);color:#fbbf24;}
+.stat-value{font-family:'Exo 2',sans-serif;font-size:28px;font-weight:800;color:#fff;line-height:1;margin-bottom:6px;}
+.stat-label{font-size:11.5px;color:var(--muted);letter-spacing:.5px;}
+.stat-trend{position:absolute;top:16px;right:16px;font-size:11px;padding:3px 8px;border-radius:20px;font-weight:600;}
+.stat-trend.up{background:rgba(34,197,94,0.15);color:#22c55e;}
+.charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;}
+.chart-card{padding:20px 22px;}
+.chart-title{font-size:13px;font-weight:600;color:rgba(200,220,255,0.8);letter-spacing:.5px;margin-bottom:16px;}
+.chart-container{position:relative;height:240px;}
+.table-wrap{overflow-x:auto;border-radius:12px;}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:rgba(26,106,255,0.08);border-bottom:1px solid var(--border);}
+thead th{padding:12px 16px;text-align:left;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:500;}
+tbody tr{border-bottom:1px solid rgba(255,255,255,0.04);transition:background .18s;}
+tbody tr:hover{background:rgba(80,140,255,0.06);}
+tbody td{padding:12px 16px;font-size:13.5px;color:rgba(200,220,255,0.8);}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge.green{background:rgba(34,197,94,0.14);color:#22c55e;}
+.badge.yellow{background:rgba(251,191,36,0.14);color:#fbbf24;}
+.badge.red{background:rgba(239,68,68,0.14);color:#ef4444;}
+.badge.blue{background:rgba(26,106,255,0.14);color:#60a5fa;}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;}
+.form-group{display:flex;flex-direction:column;gap:7px;}
+.form-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:500;}
+.form-input,.form-select,.form-textarea{padding:11px 14px;border-radius:10px;border:1px solid rgba(80,140,255,0.12);background:rgba(20,30,60,0.45);color:var(--text);font-size:14px;font-family:'Sora',sans-serif;outline:none;transition:border-color .25s,background .25s,box-shadow .25s;}
+.form-input::placeholder,.form-textarea::placeholder{color:rgba(150,180,255,0.25);}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:rgba(60,140,255,.5);background:rgba(20,30,80,0.5);box-shadow:0 0 0 3px rgba(60,140,255,.1);}
+.form-select{cursor:pointer;}.form-select option{background:#0a0e1e;}
+.form-textarea{resize:vertical;min-height:90px;}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;letter-spacing:.5px;font-family:'Sora',sans-serif;transition:opacity .2s,transform .15s,box-shadow .2s;position:relative;overflow:hidden;}
+.btn:hover{opacity:.9;transform:translateY(-1px);}
+.btn:active{transform:translateY(0);}
+.btn-primary{background:linear-gradient(135deg,#1a6aff,#6020cc);color:#fff;box-shadow:0 4px 18px rgba(26,106,255,0.3);}
+.btn-ghost{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid var(--border2);}
+.btn-ghost:hover{background:rgba(255,255,255,0.1);}
+.btn-sm{padding:7px 14px;font-size:12px;}
+.section-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.search-box{display:flex;align-items:center;gap:10px;background:rgba(20,30,60,0.5);border:1px solid rgba(80,140,255,0.12);border-radius:10px;padding:8px 14px;flex:1;max-width:320px;}
+.search-box input{background:none;border:none;outline:none;color:var(--text);font-size:14px;font-family:'Sora',sans-serif;width:100%;}
+.search-box input::placeholder{color:rgba(150,180,255,0.3);}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--violet));display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;}
+.config-section{margin-bottom:28px;}
+.config-section-title{font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.config-section-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(80,160,255,0.2),transparent);}
+.footer{position:fixed;bottom:0;left:var(--sidebar-w);right:0;height:52px;background:rgba(2,4,14,0.85);backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;z-index:150;}
+.footer-copy{font-size:11px;color:rgba(180,210,255,0.2);letter-spacing:1px;}
+.btn-whatsapp{display:flex;align-items:center;gap:7px;padding:7px 16px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);border-radius:20px;color:#22c55e;font-size:12px;font-weight:600;text-decoration:none;transition:all .22s;}
+.btn-whatsapp:hover{background:rgba(34,197,94,0.25);}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(80,140,255,0.25);border-radius:4px;}
+@media(max-width:768px){:root{--sidebar-w:0px;}.sidebar{transform:translateX(-230px);transition:transform .3s;}.sidebar.open{transform:translateX(0);width:230px;}.main{margin-left:0;}.topbar{left:0;}.footer{left:0;}.page-inner{padding:20px 16px;}.charts-grid{grid-template-columns:1fr;}.hamburger{display:flex !important;}}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:6px;}
+.hamburger span{width:22px;height:2px;background:var(--text);border-radius:2px;transition:all .3s;}
+.mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:190;}
+.mobile-overlay.show{display:block;}
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted);}
+.empty-state p{font-size:14px;}
+.produto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+.produto-card{padding:16px;border-radius:14px;text-align:center;background:var(--glass2);border:1px solid var(--border);transition:all .22s;cursor:pointer;}
+.produto-card:hover{transform:translateY(-3px);border-color:rgba(80,160,255,0.22);}
+.produto-img{width:80px;height:80px;border-radius:12px;margin:0 auto 12px;background:linear-gradient(135deg,rgba(26,106,255,0.2),rgba(96,32,204,0.2));display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;}
+.produto-img img{width:100%;height:100%;object-fit:cover;border-radius:12px;}
+.produto-name{font-size:13.5px;font-weight:600;color:#e8f0ff;margin-bottom:5px;}
+.produto-price{font-size:15px;font-weight:700;color:var(--cyan);}
+.produto-cat{font-size:11px;color:var(--muted);margin-top:4px;}
+.upload-area{border:2px dashed rgba(80,160,255,0.25);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:border-color .25s,background .25s;background:rgba(20,30,60,0.3);position:relative;overflow:hidden;}
+.upload-area:hover{border-color:rgba(80,160,255,0.55);}
+.upload-area input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-preview{width:80px;height:80px;border-radius:10px;object-fit:cover;margin:0 auto 10px;display:none;border:2px solid rgba(80,160,255,0.3);}
+.upload-icon{font-size:28px;color:rgba(80,160,255,0.4);margin-bottom:8px;}
+.upload-label{font-size:12px;color:var(--muted);line-height:1.5;}
+.upload-label span{color:var(--cyan);font-weight:600;}
+.toast-wrap{position:fixed;bottom:70px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+.toast{padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;animation:toastIn .3s ease;pointer-events:auto;backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);box-shadow:0 8px 32px rgba(0,0,0,0.4);}
+.toast.success{background:rgba(34,197,94,0.18);color:#22c55e;border-color:rgba(34,197,94,0.3);}
+.toast.error{background:rgba(239,68,68,0.18);color:#ef4444;border-color:rgba(239,68,68,0.3);}
+.toast.info{background:rgba(26,106,255,0.18);color:#60a5fa;border-color:rgba(26,106,255,0.3);}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,0.15);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.rt-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:600;background:rgba(34,197,94,0.12);color:#22c55e;border:1px solid rgba(34,197,94,0.25);}
+.rt-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.skye-notif-card{position:fixed;top:80px;right:28px;z-index:99999;width:340px;background:rgba(2,4,14,0.96);backdrop-filter:blur(24px);border:1px solid rgba(64,224,255,0.35);border-radius:16px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.7),0 0 40px rgba(64,224,255,0.08);animation:skyeIn .55s cubic-bezier(0.34,1.56,0.64,1) forwards;}
+.skye-notif-card.saindo{animation:skyeOut .4s ease forwards !important;}
+@keyframes skyeIn{from{opacity:0;transform:translateX(60px) scale(0.9);}to{opacity:1;transform:translateX(0) scale(1);}}
+@keyframes skyeOut{to{opacity:0;transform:translateX(60px) scale(0.9);}}
+.skye-notif-timer{height:3px;background:linear-gradient(90deg,#1a6aff,#40e0ff,#a060ff);animation:timerBar var(--nd,9s) linear forwards;transform-origin:left;}
+@keyframes timerBar{from{transform:scaleX(1);}to{transform:scaleX(0);}}
+.skye-notif-accent{position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,#1a6aff,#40e0ff,#a060ff);}
+.skye-notif-body{padding:16px 18px 16px 20px;display:flex;gap:14px;align-items:flex-start;}
+.skye-notif-icon{width:44px;height:44px;flex-shrink:0;border-radius:12px;background:linear-gradient(135deg,rgba(26,106,255,0.25),rgba(96,32,204,0.25));border:1px solid rgba(64,224,255,0.25);display:flex;align-items:center;justify-content:center;font-size:22px;}
+.skye-notif-content{flex:1;min-width:0;}
+.skye-notif-label{font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#40e0ff;margin-bottom:4px;}
+.skye-notif-titulo{font-family:'Exo 2',sans-serif;font-size:15px;font-weight:800;color:#fff;margin-bottom:6px;}
+.skye-notif-linha{font-size:12px;color:rgba(180,210,255,0.65);}
+.skye-notif-total{font-family:'Exo 2',sans-serif;font-size:20px;font-weight:900;color:#40e0ff;margin-top:8px;}
+.skye-notif-total small{font-size:11px;font-weight:400;color:rgba(64,224,255,0.5);margin-left:3px;}
+.skye-notif-close{position:absolute;top:10px;right:12px;background:none;border:none;color:rgba(180,210,255,0.3);cursor:pointer;font-size:18px;padding:2px 5px;border-radius:6px;transition:color .2s;}
+.skye-notif-close:hover{color:rgba(180,210,255,0.8);}
+.skye-notif-footer{padding:0 18px 14px 20px;display:flex;align-items:center;justify-content:space-between;}
+.skye-notif-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(34,197,94,0.12);color:#22c55e;border:1px solid rgba(34,197,94,0.3);}
+.skye-notif-ver{font-size:11px;color:rgba(64,224,255,0.6);cursor:pointer;background:none;border:none;font-family:'Sora',sans-serif;padding:4px 8px;border-radius:6px;transition:all .2s;}
+.skye-notif-ver:hover{color:#40e0ff;}
+#realtimeStatus{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;transition:all .3s;}
+#realtimeStatus.conectado{background:rgba(34,197,94,0.12);color:#22c55e;border:1px solid rgba(34,197,94,0.25);}
+#realtimeStatus.conectando{background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.25);}
+#realtimeStatus.desconectado{background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.25);}
+</style>
+</head>
+<body>
+<div class="bg-layer"><div class="bg-grad"></div><div id="bgStars"></div></div>
+<div class="toast-wrap" id="toastWrap"></div>
+<div class="mobile-overlay" id="overlay"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div>
+      <div class="brand-letters"><span class="bl">S</span><span class="bl">K</span><span class="bl">Y</span><span class="bl hl">E</span></div>
+      <div class="brand-tag-side">Digital Solutions</div>
+    </div>
+    <div style="margin-left:auto"><div class="brand-orbit"><div class="brand-orbit-ring"></div></div></div>
+  </div>
+  <div class="tenant-badge">
+    <div class="tenant-avatar" id="tenantAvatar">?</div>
+    <div class="tenant-info">
+      <div class="tenant-name" id="tenantName">—</div>
+      <div class="tenant-email" id="tenantEmail">—</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Principal</div>
+    <a class="nav-item active" data-page="dashboard" onclick="navTo('dashboard');return false;" href="#">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Dashboard
+    </a>
+    <a class="nav-item" data-page="cardapio" onclick="navTo('cardapio');return false;" href="#">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>Cardápio
+    </a>
+    <a class="nav-item" data-page="pedidos" onclick="navTo('pedidos');return false;" href="#">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>Pedidos
+    </a>
+    <div class="nav-section-label">Gestão</div>
+    <a class="nav-item" data-page="clientes" onclick="navTo('clientes');return false;" href="#">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Clientes
+    </a>
+    <a class="nav-item" data-page="relatorios" onclick="navTo('relatorios');return false;" href="#">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Relatórios
+    </a>
+    <div class="nav-section-label">Sistema</div>
+    <a class="nav-item" data-page="config" onclick="navTo('config');return false;" href="#">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Configurações
+    </a>
+  </nav>
+  <div class="sidebar-status">
+    <div class="status-toggle-wrap" id="statusToggle">
+      <div class="status-info">
+        <span class="status-label">Status da Loja</span>
+        <span class="status-val" id="statusVal">Fechada</span>
+      </div>
+      <div class="pill-switch" id="pillSwitch"><div class="pill-knob"></div></div>
+    </div>
+  </div>
+  <div class="sidebar-logout">
+    <div class="logout-btn" onclick="fazerLogout()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sair do Painel
+    </div>
+  </div>
+</aside>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:14px">
+    <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
+    <span class="topbar-title" id="topbarTitle">Dashboard</span>
+  </div>
+  <div class="topbar-right">
+    <span id="realtimeStatus" class="conectando">⏳ Conectando...</span>
+    <span class="rt-badge"><span class="rt-dot"></span>Ao vivo</span>
+    <span class="topbar-time" id="topbarTime"></span>
+    <div class="topbar-avatar" id="topbarAvatar" title="Sair" onclick="fazerLogout()">?</div>
+  </div>
+</header>
+
+<main class="main">
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="page active">
+    <div class="page-inner">
+      <div class="page-header">
+        <h1><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Dashboard</h1>
+        <span style="font-size:12px;color:var(--muted)">Hoje · <span id="dataHoje"></span></span>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon-wrap blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div><div class="stat-value" id="totalPedidos">—</div><div class="stat-label">Pedidos Hoje</div><span class="stat-trend up">↑ ao vivo</span></div>
+        <div class="stat-card"><div class="stat-icon-wrap green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="stat-value" id="totalVendas">—</div><div class="stat-label">Vendas Hoje</div><span class="stat-trend up">↑ ao vivo</span></div>
+        <div class="stat-card"><div class="stat-icon-wrap purple"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><div class="stat-value" id="clientesAtivos">—</div><div class="stat-label">Total de Clientes</div><span class="stat-trend up">↑ ao vivo</span></div>
+        <div class="stat-card"><div class="stat-icon-wrap cyan"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg></div><div class="stat-value" id="totalProdutos">—</div><div class="stat-label">Produtos Ativos</div><span class="stat-trend up">↑ ao vivo</span></div>
+      </div>
+      <div class="charts-grid">
+        <div class="glass-card chart-card"><div class="chart-title">Pedidos da Semana</div><div class="chart-container"><canvas id="pedidosChart"></canvas></div></div>
+        <div class="glass-card chart-card"><div class="chart-title">Vendas da Semana</div><div class="chart-container"><canvas id="vendasChart"></canvas></div></div>
+        <div class="glass-card chart-card"><div class="chart-title">Clientes por Dia</div><div class="chart-container"><canvas id="clientesChart"></canvas></div></div>
+        <div class="glass-card chart-card"><div class="chart-title">Produtos por Categoria</div><div class="chart-container"><canvas id="produtosChart"></canvas></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CARDÁPIO -->
+  <section id="cardapio" class="page">
+    <div class="page-inner">
+      <div class="page-header">
+        <h1><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>Cardápio</h1>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="rt-badge"><span class="rt-dot"></span>Tempo real</span>
+          <button class="btn btn-primary" onclick="document.getElementById('formProdutoWrap').scrollIntoView({behavior:'smooth'})"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Novo Produto</button>
+        </div>
+      </div>
+      <div class="glass-card" style="padding:22px;margin-bottom:22px;" id="formProdutoWrap">
+        <div style="font-size:13px;font-weight:600;color:rgba(200,220,255,0.8);margin-bottom:18px;" id="formProdTitle">Novo Produto</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Nome</label><input class="form-input" placeholder="Ex: Pizza Margherita" id="prodNome"></div>
+          <div class="form-group"><label class="form-label">Categoria</label><select class="form-select" id="prodCat"><option value="">Selecione...</option><option>Kits</option><option>Bebidas</option></select></div>
+          <div class="form-group"><label class="form-label">Preço (R$)</label><input class="form-input" type="number" placeholder="0,00" id="prodPreco" min="0" step="0.01"></div>
+          <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="prodStatus"><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select></div>
+        </div>
+        <div class="form-group" style="margin-top:12px"><label class="form-label">Descrição</label><textarea class="form-textarea" placeholder="Descreva o produto..." id="prodDesc"></textarea></div>
+        <div class="form-group" style="margin-top:12px">
+          <label class="form-label">Foto</label>
+          <div class="upload-area" id="uploadArea">
+            <input type="file" accept="image/*" id="prodFoto" onchange="previewFoto(this)">
+            <img class="upload-preview" id="fotoPreview" alt="">
+            <div id="uploadPlaceholder"><div class="upload-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg></div><div class="upload-label">Arraste ou <span>clique para selecionar</span><br>JPG, PNG, WEBP · Máx 5MB</div></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btnSalvarProd" onclick="salvarProduto()">Salvar Produto</button>
+          <button class="btn btn-ghost" onclick="limparFormProduto()">Limpar</button>
+          <button class="btn btn-ghost" id="btnCancelarEdicaoProd" onclick="cancelarEdicaoProduto()" style="display:none;color:#f87171;border-color:rgba(239,68,68,0.3);">Cancelar Edição</button>
+        </div>
+      </div>
+      <div class="glass-card" style="padding:22px">
+        <div class="section-toolbar">
+          <span style="font-size:13px;color:var(--muted)" id="labelTotalProdutos">Carregando...</span>
+          <div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Buscar produto..." id="searchProduto" oninput="filtrarProdutos()"></div>
+        </div>
+        <div id="produtosList"><div class="empty-state"><p>Carregando...</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PEDIDOS -->
+  <section id="pedidos" class="page">
+    <div class="page-inner">
+      <div class="page-header">
+        <h1><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>Pedidos</h1>
+        <span class="rt-badge"><span class="rt-dot"></span>Tempo real</span>
+      </div>
+      <div class="stats-grid" style="margin-bottom:20px;">
+        <div class="stat-card"><div class="stat-icon-wrap blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div><div class="stat-value" id="statTotalPedidos">0</div><div class="stat-label">Total</div></div>
+        <div class="stat-card"><div class="stat-icon-wrap yellow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="stat-value" id="statPendentes">0</div><div class="stat-label">Pendentes</div></div>
+        <div class="stat-card"><div class="stat-icon-wrap cyan"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div><div class="stat-value" id="statPreparando">0</div><div class="stat-label">Preparando</div></div>
+        <div class="stat-card"><div class="stat-icon-wrap green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><div class="stat-value" id="statEntregues">0</div><div class="stat-label">Entregues</div></div>
+      </div>
+      <div class="glass-card" style="padding:22px">
+        <div class="section-toolbar">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm filtro-btn active" data-filtro="todos" onclick="filtrarPedidos('todos')">Todos</button>
+            <button class="btn btn-ghost btn-sm filtro-btn" data-filtro="pendente" onclick="filtrarPedidos('pendente')">🕐 Pendentes</button>
+            <button class="btn btn-ghost btn-sm filtro-btn" data-filtro="preparando" onclick="filtrarPedidos('preparando')">🔧 Preparando</button>
+            <button class="btn btn-ghost btn-sm filtro-btn" data-filtro="entregue" onclick="filtrarPedidos('entregue')">✅ Entregues</button>
+            <button class="btn btn-ghost btn-sm filtro-btn" data-filtro="cancelado" onclick="filtrarPedidos('cancelado')">❌ Cancelados</button>
+          </div>
+          <div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Buscar..." id="searchPedido" oninput="filtrarPedidosTexto()"></div>
+        </div>
+        <div id="pedidosCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:8px;"><div class="empty-state" style="grid-column:1/-1"><p>Carregando...</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLIENTES -->
+  <section id="clientes" class="page">
+    <div class="page-inner">
+      <div class="page-header">
+        <h1><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Clientes</h1>
+        <button class="btn btn-primary" onclick="toggleFormCliente()">Novo Cliente</button>
+      </div>
+      <div class="glass-card" style="padding:22px;margin-bottom:22px;display:none" id="formClienteWrap">
+        <div style="font-size:13px;font-weight:600;color:rgba(200,220,255,0.8);margin-bottom:18px;" id="formCliTitle">Cadastrar Cliente</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Nome</label><input class="form-input" placeholder="Nome do cliente" id="cliNome"></div>
+          <div class="form-group"><label class="form-label">Telefone</label><input class="form-input" placeholder="(00) 00000-0000" id="cliTel"></div>
+          <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" placeholder="email@exemplo.com" id="cliEmail"></div>
+          <div class="form-group"><label class="form-label">Endereço</label><input class="form-input" placeholder="Rua, número, bairro" id="cliEnd"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btnSalvarCli" onclick="salvarCliente()">Salvar Cliente</button>
+          <button class="btn btn-ghost" onclick="toggleFormCliente()">Fechar</button>
+          <button class="btn btn-ghost" id="btnCancelarEdicaoCli" onclick="cancelarEdicaoCliente()" style="display:none;color:#f87171;">Cancelar Edição</button>
+        </div>
+      </div>
+      <div class="glass-card" style="padding:22px">
+        <div class="section-toolbar">
+          <span style="font-size:13px;color:var(--muted)" id="totalClientesLabel">Carregando...</span>
+          <div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Buscar cliente..." id="searchCliente" oninput="filtrarClientes()"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Cliente</th><th>Telefone</th><th>Email</th><th>Endereço</th><th>Pedidos</th><th>Ações</th></tr></thead>
+            <tbody id="clientesBody"><tr><td colspan="6"><div class="empty-state"><p>Carregando...</p></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RELATÓRIOS -->
+  <section id="relatorios" class="page">
+    <div class="page-inner">
+      <div class="page-header">
+        <h1><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 118 2.83"/><path d="M22 12A10 10 0 0012 2v10z"/></svg>Relatórios</h1>
+        <button class="btn btn-primary" onclick="exportarPDF()" id="btnExportPDF">Exportar PDF</button>
+      </div>
+      <div class="glass-card" style="padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Período</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm periodo-btn active" onclick="selecionarPeriodo(this,'semanal')">Esta Semana</button>
+          <button class="btn btn-ghost btn-sm periodo-btn" onclick="selecionarPeriodo(this,'mensal')">Este Mês</button>
+        </div>
+        <span id="periodoLabel" style="font-size:12px;color:var(--cyan);margin-left:auto;"></span>
+      </div>
+      <div class="stats-grid" style="margin-bottom:20px;">
+        <div class="stat-card"><div class="stat-icon-wrap green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="stat-value" id="relFaturamento">—</div><div class="stat-label">Faturamento</div><span class="stat-trend up" id="relFatTrend">—</span></div>
+        <div class="stat-card"><div class="stat-icon-wrap blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div><div class="stat-value" id="relPedidos">—</div><div class="stat-label">Pedidos</div><span class="stat-trend up" id="relPedTrend">—</span></div>
+        <div class="stat-card"><div class="stat-icon-wrap cyan"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="stat-value" id="relTicket">—</div><div class="stat-label">Ticket Médio</div><span class="stat-trend up" id="relTicketTrend">—</span></div>
+        <div class="stat-card"><div class="stat-icon-wrap purple"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="stat-value" id="relClientes">—</div><div class="stat-label">Novos Clientes</div><span class="stat-trend up" id="relCliTrend">—</span></div>
+      </div>
+      <div class="charts-grid" style="margin-bottom:20px;">
+        <div class="glass-card chart-card"><div class="chart-title">Faturamento Diário</div><div class="chart-container"><canvas id="relFatChart"></canvas></div></div>
+        <div class="glass-card chart-card"><div class="chart-title">Pedidos por Dia</div><div class="chart-container"><canvas id="relPedChart"></canvas></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:20px;">
+        <div class="glass-card" style="padding:20px;"><div class="chart-title" style="margin-bottom:14px;">Top 5 Produtos</div><table style="width:100%;border-collapse:collapse;"><thead><tr><th style="text-align:left;font-size:10px;color:var(--muted);padding:6px 4px;">#</th><th style="text-align:left;font-size:10px;color:var(--muted);padding:6px 4px;">Produto</th><th style="text-align:right;font-size:10px;color:var(--muted);padding:6px 4px;">Receita</th></tr></thead><tbody id="relTopProdutos"></tbody></table></div>
+        <div class="glass-card" style="padding:20px;"><div class="chart-title" style="margin-bottom:14px;">Horários de Pico</div><div id="relHorarios"></div></div>
+      </div>
+      <div class="glass-card" style="padding:20px;"><div class="chart-title" style="margin-bottom:14px;">Análise &amp; Alertas</div><div id="insightsList"></div></div>
+    </div>
+  </section>
+
+  <!-- CONFIGURAÇÕES -->
+  <section id="config" class="page">
+    <div class="page-inner">
+      <div class="page-header">
+        <h1><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Configurações</h1>
+        <button class="btn btn-primary btn-sm" onclick="salvarConfig()">Salvar Alterações</button>
+      </div>
+      <div class="glass-card" style="padding:24px">
+        <div id="cfgSyncBanner" style="display:none;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:rgba(64,224,255,0.08);border:1px solid rgba(64,224,255,0.25);margin-bottom:20px;">
+          <span class="rt-dot" style="background:var(--cyan);flex-shrink:0;"></span>
+          <span style="font-size:12px;color:var(--cyan);">Sincronizado com o cardápio em tempo real.</span>
+        </div>
+        <div class="config-section">
+          <div class="config-section-title"><span style="color:var(--cyan)">🏠</span>Dados da Loja</div>
+          <div class="form-grid" style="margin-bottom:14px">
+            <div class="form-group"><label class="form-label">Nome da Loja</label><input class="form-input" placeholder="Ex: Joe Sushi" id="cfgNome"></div>
+            <div class="form-group"><label class="form-label">Telefone</label><input class="form-input" placeholder="(00) 00000-0000" id="cfgTel"></div>
+            <div class="form-group"><label class="form-label">Endereço</label><input class="form-input" placeholder="Rua, número, bairro" id="cfgEnd"></div>
+            <div class="form-group"><label class="form-label">Tempo de Entrega</label><div style="display:flex;gap:8px;align-items:center;"><input class="form-input" type="number" placeholder="30" min="5" max="180" step="5" id="cfgTempo" style="width:90px;"><span style="font-size:13px;color:var(--muted);">min</span></div></div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);border:1px dashed rgba(80,160,255,0.2);border-radius:10px;padding:14px 16px;">
+            <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Pré-visualização</div>
+            <div style="font-size:18px;font-weight:700;color:#dc2626;" id="prevNome">—</div>
+            <div style="font-size:12px;color:rgba(180,200,255,0.5);margin-top:4px;" id="prevRodape">Endereço · Telefone</div>
+            <div style="margin-top:8px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:rgba(26,106,255,0.12);border:1px solid rgba(26,106,255,0.2);"><span style="font-size:11px;color:#60a5fa;" id="prevTempo">Entrega: — min</span></div>
+          </div>
+        </div>
+        <div class="config-section">
+          <div class="config-section-title"><span style="color:var(--cyan)">✨</span>Identidade & Redes Sociais</div>
+          <div class="form-grid" style="margin-bottom:14px">
+            <div class="form-group"><label class="form-label">Slogan da Loja</label><input class="form-input" placeholder="Ex: O melhor da região!" id="cfgSlogan"></div>
+            <div class="form-group">
+              <label class="form-label">Instagram</label>
+              <div style="display:flex;align-items:center;gap:0;">
+                <span style="padding:11px 12px;background:rgba(20,30,60,0.6);border:1px solid rgba(80,140,255,0.12);border-right:none;border-radius:10px 0 0 10px;font-size:13px;color:rgba(150,180,255,0.5);">@</span>
+                <input class="form-input" placeholder="seuarroba" id="cfgInstagram" style="border-radius:0 10px 10px 0;">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="config-section">
+          <div class="config-section-title"><span style="color:var(--cyan)">🔒</span>Segurança</div>
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">Nova Senha</label><input class="form-input" type="password" placeholder="••••••••" id="senhaNova"></div>
+            <div class="form-group" style="justify-content:flex-end;"><button class="btn btn-ghost btn-sm" style="align-self:flex-end" onclick="alterarSenha()">Alterar Senha</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <span class="footer-copy">SKYE v2.1 · © 2026 Grupo Enter</span>
+  <a class="btn-whatsapp" href="https://wa.me/5581983947507" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Suporte
+  </a>
+</footer>
+
+<script>
+const SUPABASE_URL = 'https://baxxdchvxygrzriassyu.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJheHhkY2h2eHlncnpyaWFzc3l1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDA0MDAsImV4cCI6MjA4ODU3NjQwMH0.r1WFyR8vthDH6S0DYuMXOrdptGP2UHxF2MdJmapRhW4';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {realtime:{params:{eventsPerSecond:10}}});
+let currentUser=null;
+(async function iniciar(){const{data}=await sb.auth.getSession();if(!data?.session){window.location.href='index.html';return;}currentUser=data.session.user;const email=currentUser.email??'';const ini=(email[0]??'?').toUpperCase();document.getElementById('tenantAvatar').textContent=ini;document.getElementById('topbarAvatar').textContent=ini;document.getElementById('tenantName').textContent=email.split('@')[0];document.getElementById('tenantEmail').textContent=email;await Promise.all([atualizarDashboard(),carregarProdutos(),carregarClientes(),carregarPedidos(),carregarStatusLoja(),carregarConfig(),carregarBairrosPainel()]);iniciarRealtimePedidos();iniciarRealtimeProdutos();iniciarRealtimeClientes();iniciarRealtimeStatusLoja();iniciarRealtimeBairros();carregarRelatorio('semanal');})();
+async function fazerLogout(){if(!confirm('Deseja sair?'))return;await sb.auth.signOut();window.location.href='index.html';}
+async function alterarSenha(){const nova=document.getElementById('senhaNova').value;if(!nova||nova.length<6){toast('Mínimo 6 caracteres.','error');return;}const{error}=await sb.auth.updateUser({password:nova});if(error){toast('Erro: '+error.message,'error');return;}toast('Senha alterada!','success');document.getElementById('senhaNova').value='';}
+function toast(msg,tipo='info',dur=3000){const w=document.getElementById('toastWrap');const el=document.createElement('div');el.className='toast '+tipo;el.textContent=({success:'✔',error:'✖',info:'ℹ'}[tipo]??'')+' '+msg;w.appendChild(el);setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(20px)';el.style.transition='.3s';setTimeout(()=>el.remove(),300);},dur);}
+(function(){const c=document.getElementById('bgStars');for(let i=0;i<50;i++){const s=document.createElement('div');s.className='star';const sz=Math.random()*1.8+0.3;s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${3+Math.random()*5}s;--o:${.1+Math.random()*.3};animation-delay:${Math.random()*5}s;`;c.appendChild(s);}})();
+setInterval(()=>document.getElementById('topbarTime').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),1000);
+document.getElementById('dataHoje').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+const PAGE_NAMES={dashboard:'Dashboard',cardapio:'Cardápio',pedidos:'Pedidos',clientes:'Clientes',relatorios:'Relatórios',config:'Configurações'};
+function navTo(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(p)?.classList.add('active');document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));document.querySelector(`.nav-item[data-page="${p}"]`)?.classList.add('active');document.getElementById('topbarTitle').textContent=PAGE_NAMES[p]||p;document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');if(p==='relatorios')carregarRelatorio(periodoAtivo);if(p==='dashboard')atualizarDashboard();if(p==='pedidos')carregarPedidos();}
+document.getElementById('hamburger').addEventListener('click',()=>{document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');});
+document.getElementById('overlay').addEventListener('click',()=>{document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');});
+let lojaAberta=false;
+function aplicarStatusLoja(v){lojaAberta=v;document.getElementById('pillSwitch').classList.toggle('on',v);const el=document.getElementById('statusVal');el.textContent=v?'Aberta':'Fechada';el.classList.toggle('aberto',v);}
+async function carregarStatusLoja(){const{data}=await sb.from('configuracoes').select('loja_aberta').maybeSingle();if(data)aplicarStatusLoja(data.loja_aberta??false);}
+async function toggleStatusLoja(){const novo=!lojaAberta;aplicarStatusLoja(novo);const{error}=await sb.from('configuracoes').upsert({id:1,loja_aberta:novo},{onConflict:'id'});if(error){aplicarStatusLoja(!novo);toast('Erro: '+error.message,'error');return;}toast('Loja '+(novo?'aberta':'fechada')+'!','success');}
+function iniciarRealtimeStatusLoja(){sb.channel('cfg-status').on('postgres_changes',{event:'UPDATE',schema:'public',table:'configuracoes'},p=>{if(p.new)aplicarStatusLoja(p.new.loja_aberta);}).subscribe();}
+document.getElementById('statusToggle').addEventListener('click',toggleStatusLoja);
+Chart.defaults.color='#7090b0';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+const CF={family:"'Sora',sans-serif",size:11};
+function makeBar(id,labels,data,color){const c=document.getElementById(id);if(!c)return;const ex=Chart.getChart(c);if(ex)ex.destroy();return new Chart(c,{type:'bar',data:{labels,datasets:[{data,backgroundColor:color+'0.65)',borderColor:color+'1)',borderWidth:1.5,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.05)'},ticks:{font:CF}},x:{grid:{display:false},ticks:{font:CF}}}}});}
+function makeLine(id,labels,data,color){const c=document.getElementById(id);if(!c)return;const ex=Chart.getChart(c);if(ex)ex.destroy();return new Chart(c,{type:'line',data:{labels,datasets:[{data,backgroundColor:color+'0.12)',borderColor:color+'1)',borderWidth:2.5,fill:true,tension:.4,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:color+'1)',pointBorderColor:'#fff',pointBorderWidth:1.5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.05)'},ticks:{font:CF}},x:{grid:{display:false},ticks:{font:CF}}}}});}
+async function atualizarDashboard(){try{const[rCli,rProd]=await Promise.all([sb.from('pedidos').select('cliente,telefone'),sb.from('produtos').select('*',{count:'exact',head:true}).eq('status','ativo')]);const nomes=new Set((rCli.data||[]).map(p=>(p.cliente||'').trim().toLowerCase()+'|'+(p.telefone||'').trim()));document.getElementById('clientesAtivos').textContent=nomes.size;document.getElementById('totalProdutos').textContent=rProd.count??'0';const hoje=new Date();const ini=new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate()).toISOString();const fim=new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate(),23,59,59).toISOString();const{data:ph}=await sb.from('pedidos').select('total,status').gte('criado_em',ini).lte('criado_em',fim);const val=(ph||[]).filter(p=>p.status!=='cancelado');document.getElementById('totalPedidos').textContent=val.length;document.getElementById('totalVendas').textContent='R$ '+val.reduce((a,p)=>a+(parseFloat(p.total)||0),0).toFixed(2).replace('.',',');}catch(e){console.error(e);}renderChartsDemo();}
+function renderChartsDemo(){const d=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];makeBar('pedidosChart',d,[12,19,15,25,22,30,28],'rgba(26,106,255,');makeLine('vendasChart',d,[450,680,520,890,750,1200,980],'rgba(34,197,94,');makeLine('clientesChart',d,[3,5,2,8,6,12,9],'rgba(168,85,247,');const c=document.getElementById('produtosChart');if(c){const ex=Chart.getChart(c);if(ex)ex.destroy();new Chart(c,{type:'doughnut',data:{labels:['Kits','Bebidas'],datasets:[{data:[12,7],backgroundColor:['rgba(239,68,68,.75)','rgba(34,197,94,.75)'],borderWidth:1.5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#7090b0',padding:12,font:CF}}}}});}}
+let produtos=[],prodEditandoId=null,prodFotoUrlAtual=null;
+function previewFoto(input){const f=input.files[0];if(!f)return;if(f.size>5*1024*1024){toast('Máx 5MB.','error');input.value='';return;}const r=new FileReader();r.onload=e=>{const pv=document.getElementById('fotoPreview');pv.src=e.target.result;pv.style.display='block';document.getElementById('uploadPlaceholder').style.display='none';document.getElementById('uploadArea').style.borderColor='rgba(64,224,255,0.5)';};r.readAsDataURL(f);}
+async function carregarProdutos(){const{data,error}=await sb.from('produtos').select('*').order('id',{ascending:false});if(error){toast('Erro produtos.','error');return;}produtos=data||[];renderProdutos(produtos);}
+async function salvarProduto(){const nome=document.getElementById('prodNome').value.trim();if(!nome){toast('Informe o nome.','error');return;}const btn=document.getElementById('btnSalvarProd');btn.disabled=true;btn.innerHTML='<div class="spinner"></div>Salvando...';try{let imagem=prodFotoUrlAtual;const arq=document.getElementById('prodFoto').files[0];if(arq){const ext=arq.name.split('.').pop();const path=`produto_${Date.now()}.${ext}`;const{error:errUp}=await sb.storage.from('imagens').upload(path,arq,{upsert:true,contentType:arq.type});if(!errUp){const{data:u}=sb.storage.from('imagens').getPublicUrl(path);imagem=u.publicUrl;}}const payload={nome,categoria:document.getElementById('prodCat').value,preco:parseFloat(document.getElementById('prodPreco').value)||0,status:document.getElementById('prodStatus').value,descricao:document.getElementById('prodDesc').value.trim(),imagem_url:imagem||null,atualizado_em:new Date().toISOString()};if(prodEditandoId!==null){const{error}=await sb.from('produtos').update(payload).eq('id',prodEditandoId);if(error)throw error;toast('Produto atualizado!','success');cancelarEdicaoProduto();}else{const{error}=await sb.from('produtos').insert([{...payload,criado_em:new Date().toISOString()}]);if(error)throw error;toast('Produto cadastrado!','success');limparFormProduto();}await carregarProdutos();}catch(e){toast('Erro: '+e.message,'error');}finally{btn.disabled=false;btn.innerHTML='Salvar Produto';}}
+function editarProduto(id){const p=produtos.find(x=>x.id===id);if(!p)return;prodEditandoId=id;document.getElementById('prodNome').value=p.nome||'';document.getElementById('prodCat').value=p.categoria||'';document.getElementById('prodPreco').value=p.preco||'';document.getElementById('prodStatus').value=p.status||'ativo';document.getElementById('prodDesc').value=p.descricao||'';prodFotoUrlAtual=p.imagem_url||null;if(p.imagem_url){const pv=document.getElementById('fotoPreview');pv.src=p.imagem_url;pv.style.display='block';document.getElementById('uploadPlaceholder').style.display='none';}document.getElementById('formProdTitle').textContent='✏️ Editando: '+p.nome;document.getElementById('btnCancelarEdicaoProd').style.display='inline-flex';document.getElementById('formProdTitle').scrollIntoView({behavior:'smooth',block:'center'});}
+function cancelarEdicaoProduto(){prodEditandoId=null;document.getElementById('formProdTitle').textContent='Novo Produto';document.getElementById('btnCancelarEdicaoProd').style.display='none';limparFormProduto();}
+function limparFormProduto(){['prodNome','prodPreco','prodDesc'].forEach(id=>document.getElementById(id).value='');document.getElementById('prodCat').selectedIndex=0;document.getElementById('prodStatus').selectedIndex=0;document.getElementById('prodFoto').value='';document.getElementById('fotoPreview').style.display='none';document.getElementById('uploadPlaceholder').style.display='block';document.getElementById('uploadArea').style.borderColor='';prodFotoUrlAtual=null;}
+function renderProdutos(lista){const el=document.getElementById('produtosList');document.getElementById('labelTotalProdutos').textContent=`${lista.length} produto${lista.length!==1?'s':''} cadastrado${lista.length!==1?'s':''}`;if(!lista.length){el.innerHTML='<div class="empty-state"><p>Nenhum produto cadastrado.</p></div>';return;}const em={Kits:'📦',Bebidas:'🥤'};el.innerHTML='<div class="produto-grid">'+lista.map(p=>`<div class="produto-card"><div class="produto-img">${p.imagem_url?`<img src="${p.imagem_url}" alt="${p.nome}" onerror="this.parentElement.innerHTML='🍴'">`:(em[p.categoria]||'🍴')}</div><div class="produto-name">${p.nome}</div><div class="produto-price">R$ ${(p.preco||0).toFixed(2).replace('.',',')}</div><div class="produto-cat">${p.categoria||'—'}</div><div style="margin-top:10px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;"><span class="badge ${p.status==='ativo'?'green':'red'}">${p.status}</span><button onclick="editarProduto(${p.id})" style="padding:4px 10px;font-size:11px;background:rgba(26,106,255,0.15);border:1px solid rgba(26,106,255,0.3);color:#60a5fa;border-radius:6px;cursor:pointer;">✏️ Editar</button><button onclick="deletarProduto(${p.id})" style="padding:4px 10px;font-size:11px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#ef4444;border-radius:6px;cursor:pointer;">🗑️</button></div></div>`).join('')+'</div>';}
+async function deletarProduto(id){if(!confirm('Deletar produto?'))return;const{error}=await sb.from('produtos').delete().eq('id',id);if(error){toast('Erro.','error');return;}await carregarProdutos();toast('Removido.','info');}
+function filtrarProdutos(){const q=document.getElementById('searchProduto').value.toLowerCase();renderProdutos(produtos.filter(p=>p.nome.toLowerCase().includes(q)));}
+function iniciarRealtimeProdutos(){let tentativas=0;function conectar(){sb.channel('prod-rt').on('postgres_changes',{event:'*',schema:'public',table:'produtos'},()=>{carregarProdutos();atualizarDashboard();}).subscribe(status=>{if(status==='SUBSCRIBED'){tentativas=0;}if(['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status)){tentativas++;setTimeout(conectar,Math.min(3000*tentativas,15000));}});}conectar();}
+let bairrosPainel=[];
+async function carregarBairrosPainel(){const{data}=await sb.from('bairros').select('*').order('nome');bairrosPainel=data||[];renderBairros();}
+function renderBairros(){const el=document.getElementById('bairrosList');if(!el)return;if(!bairrosPainel.length){el.innerHTML='<div class="empty-state"><p>Nenhum bairro cadastrado.</p></div>';return;}el.innerHTML=bairrosPainel.map(b=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--glass2);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;"><div><span style="font-weight:600;font-size:13px">${b.nome}</span><span style="margin-left:10px;font-size:12px;color:var(--muted)">Taxa: R$ ${(b.taxa||0).toFixed(2).replace('.',',')}</span><span class="badge ${b.ativo?'green':'red'}" style="margin-left:8px">${b.ativo?'ativo':'inativo'}</span></div><div style="display:flex;gap:6px"><button onclick="editarBairro(${b.id})" style="padding:4px 10px;font-size:11px;background:rgba(26,106,255,0.15);border:1px solid rgba(26,106,255,0.3);color:#60a5fa;border-radius:6px;cursor:pointer;">✏️</button><button onclick="deletarBairro(${b.id})" style="padding:4px 10px;font-size:11px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#ef4444;border-radius:6px;cursor:pointer;">🗑️</button></div></div>`).join('');}
+async function salvarBairro(){const nome=document.getElementById('bairroNome')?.value?.trim();const taxa=parseFloat(document.getElementById('bairroTaxa')?.value)||0;if(!nome){toast('Informe o nome do bairro.','error');return;}const{error}=await sb.from('bairros').insert({nome,taxa,ativo:true});if(error){toast('Erro: '+error.message,'error');return;}document.getElementById('bairroNome').value='';document.getElementById('bairroTaxa').value='';toast('Bairro cadastrado!','success');await carregarBairrosPainel();}
+async function editarBairro(id){const b=bairrosPainel.find(x=>x.id===id);if(!b)return;const novo=prompt(`Taxa de entrega para "${b.nome}" (atual: R$ ${b.taxa}):`,b.taxa);if(novo===null)return;const{error}=await sb.from('bairros').update({taxa:parseFloat(novo)||0}).eq('id',id);if(error){toast('Erro.','error');return;}toast('Bairro atualizado!','success');await carregarBairrosPainel();}
+async function deletarBairro(id){if(!confirm('Deletar bairro?'))return;const{error}=await sb.from('bairros').delete().eq('id',id);if(error){toast('Erro.','error');return;}toast('Removido.','info');await carregarBairrosPainel();}
+function iniciarRealtimeBairros(){sb.channel('bairros-rt').on('postgres_changes',{event:'*',schema:'public',table:'bairros'},()=>carregarBairrosPainel()).subscribe();}
+let clientes=[],cliEditandoId=null;
+async function carregarClientes(){const{data,error}=await sb.from('pedidos').select('cliente,telefone,endereco,criado_em').order('criado_em',{ascending:false});if(error){toast('Erro clientes.','error');return;}const mapa={};(data||[]).forEach(p=>{const chave=(p.cliente||'').trim().toLowerCase()+'|'+(p.telefone||'').trim();if(!mapa[chave]){mapa[chave]={id:chave,nome:p.cliente||'—',telefone:p.telefone||null,email:null,endereco:p.endereco||null,pedidos:0};}mapa[chave].pedidos++;});clientes=Object.values(mapa);renderClientes(clientes);}
+function toggleFormCliente(){const f=document.getElementById('formClienteWrap');if(cliEditandoId!==null){cancelarEdicaoCliente();return;}f.style.display=f.style.display==='block'?'none':'block';}
+async function salvarCliente(){const nome=document.getElementById('cliNome').value.trim();if(!nome){toast('Informe o nome.','error');return;}const btn=document.getElementById('btnSalvarCli');btn.disabled=true;btn.textContent='Salvando...';try{toast('Clientes são registrados automaticamente ao fazer pedidos. Edição não disponível.','info');}catch(e){toast('Erro: '+e.message,'error');}finally{btn.disabled=false;btn.textContent='Salvar Cliente';}}
+function editarCliente(id){const c=clientes.find(x=>x.id===id);if(!c)return;toast('ℹ️ '+c.nome+' · '+c.pedidos+' pedido(s) · '+c.telefone,'info',4000);}
+function cancelarEdicaoCliente(){cliEditandoId=null;document.getElementById('formCliTitle').textContent='Cadastrar Cliente';document.getElementById('btnCancelarEdicaoCli').style.display='none';['cliNome','cliTel','cliEmail','cliEnd'].forEach(id=>document.getElementById(id).value='');document.getElementById('formClienteWrap').style.display='none';}
+function renderClientes(lista){document.getElementById('totalClientesLabel').textContent=`${lista.length} cliente${lista.length!==1?'s':''}`;const el=document.getElementById('clientesBody');if(!lista.length){el.innerHTML='<tr><td colspan="6"><div class="empty-state"><p>Nenhum cliente.</p></div></td></tr>';return;}el.innerHTML=lista.map(c=>`<tr><td style="display:flex;align-items:center;gap:10px"><div class="avatar">${(c.nome[0]||'?').toUpperCase()}</div>${c.nome}</td><td>${c.telefone||'—'}</td><td>${c.email||'—'}</td><td>${c.endereco||'—'}</td><td><span class="badge blue">${c.pedidos||0}</span></td><td style="display:flex;gap:6px"><button onclick="editarCliente(${c.id})" style="padding:5px 10px;font-size:11px;background:rgba(26,106,255,0.15);border:1px solid rgba(26,106,255,0.3);color:#60a5fa;border-radius:6px;cursor:pointer;">✏️</button><button onclick="deletarCliente('${c.id}')" style="padding:5px 10px;font-size:11px;background:rgba(80,80,80,0.1);border:1px solid rgba(255,255,255,0.1);color:var(--muted);border-radius:6px;cursor:pointer;" title="Clientes vêm dos pedidos">ℹ️</button></td></tr>`).join('');}
+async function deletarCliente(id){toast('Clientes são gerados automaticamente a partir dos pedidos.','info');}
+function filtrarClientes(){const q=document.getElementById('searchCliente').value.toLowerCase();renderClientes(clientes.filter(c=>(c.nome||'').toLowerCase().includes(q)));}
+function iniciarRealtimeClientes(){sb.channel('cli-rt').on('postgres_changes',{event:'*',schema:'public',table:'pedidos'},()=>{carregarClientes();atualizarDashboard();}).subscribe();}
+let filtroAtivo='todos',todosPedidos=[],mostrandoTodosPedidos=false;
+const PEDIDOS_VISIVEIS=4;
+async function carregarPedidos(){const{data,error}=await sb.from('pedidos').select('*').order('criado_em',{ascending:false});if(error){console.error(error);return;}todosPedidos=data||[];atualizarStatsPedidos();const base=filtroAtivo==='todos'?todosPedidos:todosPedidos.filter(p=>p.status===filtroAtivo);renderPedidosCards(base);}
+function atualizarStatsPedidos(){document.getElementById('statTotalPedidos').textContent=todosPedidos.length;document.getElementById('statPendentes').textContent=todosPedidos.filter(p=>p.status==='pendente').length;document.getElementById('statPreparando').textContent=todosPedidos.filter(p=>p.status==='preparando').length;document.getElementById('statEntregues').textContent=todosPedidos.filter(p=>p.status==='entregue').length;}
+function filtrarPedidos(f){filtroAtivo=f;mostrandoTodosPedidos=false;document.querySelectorAll('.filtro-btn').forEach(b=>{b.classList.toggle('btn-primary',b.dataset.filtro===f);b.classList.toggle('btn-ghost',b.dataset.filtro!==f);});renderPedidosCards(f==='todos'?todosPedidos:todosPedidos.filter(p=>p.status===f));}
+function filtrarPedidosTexto(){const q=document.getElementById('searchPedido').value.toLowerCase();const base=filtroAtivo==='todos'?todosPedidos:todosPedidos.filter(p=>p.status===filtroAtivo);const resultado=base.filter(p=>(p.cliente||'').toLowerCase().includes(q)||String(p.id).includes(q));renderPedidosCards(resultado,q.length>0);}
+function fmtHora(s){if(!s)return'—';const d=new Date(s);return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}
+function _buildCard(p){const sm={pendente:{cor:'rgba(251,191,36,0.15)',borda:'rgba(251,191,36,0.4)',texto:'#fbbf24',label:'🕐 Pendente'},preparando:{cor:'rgba(64,224,255,0.10)',borda:'rgba(64,224,255,0.35)',texto:'#40e0ff',label:'🔧 Preparando'},entregue:{cor:'rgba(34,197,94,0.12)',borda:'rgba(34,197,94,0.35)',texto:'#22c55e',label:'✅ Entregue'},cancelado:{cor:'rgba(239,68,68,0.12)',borda:'rgba(239,68,68,0.35)',texto:'#ef4444',label:'❌ Cancelado'}};const prox={pendente:'preparando',preparando:'entregue'};const lp={pendente:'Iniciar Preparo',preparando:'Marcar Entregue'};const st=sm[p.status]||sm.pendente;const itens=Array.isArray(p.itens)?p.itens:[];const ih=itens.map(i=>`<div style="display:flex;justify-content:space-between;font-size:12px;color:rgba(200,220,255,0.7);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04)"><span>${i.quantidade}x ${i.nome}</span><span style="color:var(--cyan)">R$ ${(i.precoFinal||0).toFixed(2).replace('.',',')}</span></div>`).join('');const tp=!!prox[p.status];return `<div style="background:var(--glass2);border:1px solid ${st.borda};border-radius:14px;padding:16px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:${st.texto};opacity:.6;"></div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div style="display:flex;align-items:center;gap:8px;"><span style="font-family:'Exo 2',sans-serif;font-weight:800;font-size:15px;color:#fff">#${p.id}</span><span style="padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${st.cor};color:${st.texto};border:1px solid ${st.borda}">${st.label}</span></div><span style="font-size:11px;color:var(--muted)">${fmtHora(p.criado_em)}</span></div><div style="margin-bottom:10px;"><div style="font-size:13px;font-weight:600;color:#e8f0ff;">👤 ${p.cliente||'—'}</div><div style="font-size:12px;color:var(--muted);">📱 ${p.telefone||'—'}</div><div style="font-size:12px;color:var(--muted);">📍 ${p.endereco||'—'}</div><div style="font-size:11px;color:rgba(180,210,255,0.5);">💳 ${p.forma_pagamento||'—'}</div>${p.observacao?`<div style="font-size:11px;color:rgba(180,210,255,0.4);margin-top:3px;">📝 ${p.observacao}</div>`:''}</div><div style="max-height:100px;overflow-y:auto;margin-bottom:10px;">${ih||'<span style="font-size:12px;color:var(--muted)">Sem itens</span>'}</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;"><span style="font-family:'Exo 2',sans-serif;font-weight:800;font-size:18px;color:var(--cyan)">R$ ${(p.total||0).toFixed(2).replace('.',',')}</span><div style="display:flex;gap:6px;">${tp?`<button onclick="atualizarStatusPedido(${p.id},'${prox[p.status]}')" style="padding:5px 12px;font-size:11px;font-weight:600;background:linear-gradient(135deg,#1a6aff,#6020cc);border:none;color:#fff;border-radius:8px;cursor:pointer;">${lp[p.status]}</button>`:''} ${p.status!=='cancelado'&&p.status!=='entregue'?`<button onclick="atualizarStatusPedido(${p.id},'cancelado')" style="padding:5px 10px;font-size:11px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#ef4444;border-radius:8px;cursor:pointer;">Cancelar</button>`:''}</div></div></div>`;}
+function renderPedidosCards(lista,forcarTodos=false){const el=document.getElementById('pedidosCards');if(!lista.length){el.innerHTML='<div class="empty-state" style="grid-column:1/-1"><p>Nenhum pedido encontrado.</p></div>';return;}const exibindoTodos=forcarTodos||mostrandoTodosPedidos;const visiveis=exibindoTodos?lista:lista.slice(0,PEDIDOS_VISIVEIS);const ocultos=lista.length-PEDIDOS_VISIVEIS;let html=visiveis.map(_buildCard).join('');if(lista.length>PEDIDOS_VISIVEIS&&!forcarTodos){if(!exibindoTodos){html+=`<div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 0;"><div style="width:100%;height:1px;background:linear-gradient(90deg,transparent,rgba(80,160,255,0.2),transparent);"></div><button onclick="expandirPedidos()" style="display:flex;align-items:center;gap:8px;padding:10px 28px;background:rgba(26,106,255,0.1);border:1px solid rgba(26,106,255,0.25);color:#60a5fa;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:'Sora',sans-serif;transition:all .2s;" onmouseover="this.style.background='rgba(26,106,255,0.2)'" onmouseout="this.style.background='rgba(26,106,255,0.1)'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>Ver mais ${ocultos} pedido${ocultos!==1?'s':''} anteriores</button></div>`;}else{html+=`<div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 0;"><div style="width:100%;height:1px;background:linear-gradient(90deg,transparent,rgba(80,160,255,0.2),transparent);"></div><button onclick="recolherPedidos()" style="display:flex;align-items:center;gap:8px;padding:10px 28px;background:rgba(80,80,80,0.1);border:1px solid rgba(255,255,255,0.1);color:var(--muted);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:'Sora',sans-serif;transition:all .2s;" onmouseover="this.style.background='rgba(80,80,80,0.2)'" onmouseout="this.style.background='rgba(80,80,80,0.1)'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Recolher — mostrar apenas os 4 mais recentes</button></div>`;}}el.innerHTML=html;}
+function expandirPedidos(){mostrandoTodosPedidos=true;const base=filtroAtivo==='todos'?todosPedidos:todosPedidos.filter(p=>p.status===filtroAtivo);renderPedidosCards(base);}
+function recolherPedidos(){mostrandoTodosPedidos=false;const base=filtroAtivo==='todos'?todosPedidos:todosPedidos.filter(p=>p.status===filtroAtivo);renderPedidosCards(base);document.getElementById('pedidosCards').scrollIntoView({behavior:'smooth',block:'start'});}
+async function atualizarStatusPedido(id,novoStatus){const{error}=await sb.from('pedidos').update({status:novoStatus}).eq('id',id);if(error){toast('Erro.','error');return;}toast(`Status: "${novoStatus}"`,'success');await carregarPedidos();}
+let _audioCtx=null;
+function _getAudioCtx(){if(!_audioCtx){_audioCtx=new(window.AudioContext||window.webkitAudioContext)();}return _audioCtx;}
+function _unlockAudio(){const ctx=_getAudioCtx();if(ctx.state==='suspended'){ctx.resume();}}
+document.addEventListener('click',_unlockAudio,{once:false});
+document.addEventListener('touchstart',_unlockAudio,{once:false});
+function tocarSomNovoPedido(){try{const ctx=_getAudioCtx();if(ctx.state==='suspended')ctx.resume();const now=ctx.currentTime;[[0,660],[0.18,880],[0.36,1100]].forEach(([t,freq])=>{const o=ctx.createOscillator();const g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.setValueAtTime(freq,now+t);g.gain.setValueAtTime(0,now+t);g.gain.linearRampToValueAtTime(0.3,now+t+0.04);g.gain.exponentialRampToValueAtTime(0.001,now+t+0.25);o.start(now+t);o.stop(now+t+0.25);});}catch(e){console.warn('[SOM]',e);}}
+let _nEl=null,_nTimer=null;
+function mostrarNotifPedido(p){if(_nTimer){clearTimeout(_nTimer);_nTimer=null;}if(_nEl){_nEl.remove();_nEl=null;}const id=p.id||'?';const cliente=p.cliente||'Cliente';const total=parseFloat(p.total||0).toFixed(2).replace('.',',');const hora=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});const itens=Array.isArray(p.itens)?p.itens:[];const n=itens.reduce((a,i)=>a+(i.quantidade||1),0);const card=document.createElement('div');card.className='skye-notif-card';card.style.setProperty('--nd','9s');card.innerHTML=`<div class="skye-notif-timer"></div><div class="skye-notif-accent"></div><div class="skye-notif-body"><div class="skye-notif-icon">🛎️</div><div class="skye-notif-content"><div class="skye-notif-label">SKYE · Novo Pedido</div><div class="skye-notif-titulo">#${id} — ${cliente}</div><div class="skye-notif-linha"><strong>${hora}</strong></div><div class="skye-notif-linha"><strong>${n}</strong> ${n===1?'item':'itens'}</div><div class="skye-notif-total">R$ ${total}<small>BRL</small></div></div></div><div class="skye-notif-footer"><span class="skye-notif-badge">✔ Pedido recebido</span><button class="skye-notif-ver" onclick="navTo('pedidos');fecharNotif()">Ver pedidos →</button></div><button class="skye-notif-close" onclick="fecharNotif()">×</button>`;document.body.appendChild(card);_nEl=card;_nTimer=setTimeout(fecharNotif,9000);}
+function fecharNotif(){if(_nTimer){clearTimeout(_nTimer);_nTimer=null;}if(!_nEl)return;_nEl.classList.add('saindo');setTimeout(()=>{_nEl?.remove();_nEl=null;},420);}
+let _pedCh=null,_realtimeTentativas=0;
+function setRealtimeStatus(status){const el=document.getElementById('realtimeStatus');if(!el)return;el.className=status;el.textContent={conectado:'● Realtime ativo',conectando:'⏳ Conectando...',desconectado:'✖ Offline'}[status]||status;}
+function iniciarRealtimePedidos(){if(_pedCh){sb.removeChannel(_pedCh);_pedCh=null;}setRealtimeStatus('conectando');_pedCh=sb.channel('pedidos-live',{config:{broadcast:{self:false}}});_pedCh.on('postgres_changes',{event:'INSERT',schema:'public',table:'pedidos'},payload=>{console.log('[SKYE] 🛎️ Novo pedido:',payload.new);tocarSomNovoPedido();mostrarNotifPedido(payload.new||{});toast('🛎️ Novo pedido chegou!','success',5000);carregarPedidos();atualizarDashboard();}).on('postgres_changes',{event:'UPDATE',schema:'public',table:'pedidos'},()=>{carregarPedidos();atualizarDashboard();}).subscribe(status=>{console.log('[SKYE Realtime status]',status);if(status==='SUBSCRIBED'){setRealtimeStatus('conectado');_realtimeTentativas=0;toast('✅ Realtime conectado!','success',2000);}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){setRealtimeStatus('desconectado');_realtimeTentativas++;const delay=Math.min(3000*_realtimeTentativas,15000);console.warn(`[SKYE] Reconectando em ${delay}ms (tentativa ${_realtimeTentativas})...`);setTimeout(iniciarRealtimePedidos,delay);}else{setRealtimeStatus('conectando');}});}
+let periodoAtivo='semanal',relFatChart,relPedChart,dadosRelatorioCache=null;
+async function carregarDadosRelatorio(periodo){const hoje=new Date();let dataInicio,dataFim,diasLabel;if(periodo==='semanal'){dataFim=new Date(hoje);dataInicio=new Date(hoje);dataInicio.setDate(hoje.getDate()-6);diasLabel=[];for(let i=6;i>=0;i--){const d=new Date(hoje);d.setDate(hoje.getDate()-i);diasLabel.push(d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.',''));}}else{dataInicio=new Date(hoje.getFullYear(),hoje.getMonth(),1);dataFim=new Date(hoje.getFullYear(),hoje.getMonth()+1,0);diasLabel=[];for(let s=1;s<=5;s++){if((s-1)*7+1>dataFim.getDate())break;diasLabel.push('S'+s);}}const isoIni=dataInicio.toISOString().split('T')[0]+'T00:00:00';const isoFim=dataFim.toISOString().split('T')[0]+'T23:59:59';try{const{data:ped}=await sb.from('pedidos').select('total,status,criado_em,itens').gte('criado_em',isoIni).lte('criado_em',isoFim);const val=(ped||[]).filter(p=>p.status!=='cancelado');const fat=val.reduce((a,p)=>a+(parseFloat(p.total)||0),0);const tp=val.length,ticket=tp>0?fat/tp:0;const fatDia=new Array(diasLabel.length).fill(0),pedDia=new Array(diasLabel.length).fill(0);val.forEach(p=>{const d=new Date(p.criado_em);let idx=0;if(periodo==='semanal'){idx=Math.max(0,Math.min(Math.floor((d-dataInicio)/(864e5)),6));}else{idx=Math.min(Math.floor((d.getDate()-1)/7),diasLabel.length-1);}fatDia[idx]+=parseFloat(p.total)||0;pedDia[idx]+=1;});const pm={};val.forEach(p=>{(Array.isArray(p.itens)?p.itens:[]).forEach(i=>{if(!i.nome||i.nome==='Taxa de Entrega')return;if(!pm[i.nome])pm[i.nome]={qtd:0,receita:0};pm[i.nome].qtd+=i.quantidade||1;pm[i.nome].receita+=parseFloat(i.precoFinal)||0;});});const top=Object.entries(pm).map(([nome,v])=>({nome,qtd:v.qtd,receita:+v.receita.toFixed(2)})).sort((a,b)=>b.receita-a.receita).slice(0,5);if(!top.length)top.push({nome:'Sem dados',qtd:0,receita:0});const hm={'12h–14h':0,'14h–18h':0,'18h–20h':0,'20h–22h':0,'22h–00h':0};val.forEach(p=>{const h=new Date(p.criado_em).getHours();if(h>=12&&h<14)hm['12h–14h']++;else if(h>=14&&h<18)hm['14h–18h']++;else if(h>=18&&h<20)hm['18h–20h']++;else if(h>=20&&h<22)hm['20h–22h']++;else if(h>=22||h<2)hm['22h–00h']++;});const totH=Object.values(hm).reduce((a,b)=>a+b,0)||1;const hor=Object.entries(hm).map(([hora,q])=>({hora,pedidos:q,pct:Math.round(q/totH*100)})).filter(h=>h.pedidos>0);if(!hor.length)hor.push({hora:'Sem dados',pedidos:0,pct:100});let nCli=0;try{const{count}=await sb.from('clientes').select('*',{count:'exact',head:true}).gte('criado_em',isoIni).lte('criado_em',isoFim);nCli=count||0;}catch(e){}const lp=periodo==='semanal'?`${dataInicio.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})} – ${dataFim.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})}`:dataInicio.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});return{label:lp,faturamento:+fat.toFixed(2),pedidos:tp,ticket:+ticket.toFixed(2),clientes:nCli,diasLabel,fatDia:fatDia.map(v=>+v.toFixed(2)),pedDia,topProdutos:top,horarios:hor};}catch(e){console.error(e);return null;}}
+function selecionarPeriodo(btn,p){document.querySelectorAll('.periodo-btn').forEach(b=>{b.classList.remove('btn-primary');b.classList.add('btn-ghost');});btn.classList.add('btn-primary');btn.classList.remove('btn-ghost');carregarRelatorio(p);}
+async function carregarRelatorio(periodo){periodoAtivo=periodo;['relFaturamento','relPedidos','relTicket','relClientes'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='...';});const d=await carregarDadosRelatorio(periodo);if(!d){['relFaturamento','relPedidos','relTicket','relClientes'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});return;}dadosRelatorioCache=d;document.getElementById('relFaturamento').textContent='R$ '+d.faturamento.toLocaleString('pt-BR',{minimumFractionDigits:2});document.getElementById('relPedidos').textContent=d.pedidos;document.getElementById('relTicket').textContent='R$ '+d.ticket.toFixed(2).replace('.',',');document.getElementById('relClientes').textContent=d.clientes;['relFatTrend','relPedTrend','relTicketTrend','relCliTrend'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='↑ ao vivo';});document.getElementById('periodoLabel').textContent=d.label;if(relFatChart)relFatChart.destroy();if(relPedChart)relPedChart.destroy();relFatChart=makeBar('relFatChart',d.diasLabel,d.fatDia,'rgba(26,106,255,');relPedChart=makeLine('relPedChart',d.diasLabel,d.pedDia,'rgba(64,224,255,');document.getElementById('relTopProdutos').innerHTML=d.topProdutos.map((p,i)=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.04)"><td style="padding:8px 4px;font-size:12px;color:var(--muted)">${i+1}</td><td style="padding:8px 4px;font-size:13px;color:#e8f0ff">${p.nome}</td><td style="padding:8px 4px;font-size:12px;color:var(--muted);text-align:center">${p.qtd}x</td><td style="padding:8px 4px;font-size:13px;font-weight:600;color:#22c55e;text-align:right">R$ ${p.receita.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`).join('');document.getElementById('relHorarios').innerHTML=d.horarios.map(h=>`<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:13px;color:#e8f0ff">${h.hora}</span><span style="font-size:12px;color:var(--cyan);font-weight:600">${h.pedidos} pedidos · ${h.pct}%</span></div><div style="height:6px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden"><div style="height:100%;width:${h.pct}%;background:linear-gradient(90deg,#1a6aff,#40e0ff);border-radius:4px"></div></div></div>`).join('');gerarInsights(d);}
+function gerarInsights(d){const lista=document.getElementById('insightsList');const maxF=Math.max(...d.fatDia),idxM=d.fatDia.indexOf(maxF);const hP=d.horarios.reduce((a,b)=>a.pedidos>b.pedidos?a:b);const top=d.topProdutos[0];const ins=[{t:'success',m:`<strong>${d.diasLabel[idxM]}</strong> foi o melhor dia: <strong>R$ ${maxF.toLocaleString('pt-BR')}</strong>.`},{t:'info',m:`Pico em <strong>${hP.hora}</strong> — ${hP.pct}% dos pedidos.`},d.ticket>50?{t:'success',m:`Ticket médio <strong>R$ ${d.ticket.toFixed(2).replace('.',',')}</strong> acima da média.`}:{t:'warning',m:`Ticket médio <strong>R$ ${d.ticket.toFixed(2).replace('.',',')}</strong>. Considere criar combos.`},{t:'info',m:`<strong>${top.nome}</strong> lidera com ${top.qtd} vendas.`}];const cores={success:'rgba(34,197,94,0.12)',info:'rgba(26,106,255,0.12)',warning:'rgba(251,191,36,0.12)'};const bordas={success:'rgba(34,197,94,0.3)',info:'rgba(26,106,255,0.3)',warning:'rgba(251,191,36,0.3)'};lista.innerHTML=ins.map(i=>`<div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:10px;background:${cores[i.t]};border:1px solid ${bordas[i.t]};margin-bottom:8px;"><span style="flex-shrink:0;margin-top:2px;">${i.t==='success'?'✅':i.t==='info'?'ℹ️':'⚠️'}</span><span style="font-size:13px;color:rgba(200,220,255,0.85);line-height:1.5;">${i.m}</span></div>`).join('');}
+function exportarPDF(){const btn=document.getElementById('btnExportPDF');btn.textContent='Gerando...';btn.disabled=true;const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});const d=dadosRelatorioCache;if(!d){toast('Carregue o relatório primeiro.','error');btn.textContent='Exportar PDF';btn.disabled=false;return;}const W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight();doc.setFillColor(2,4,14);doc.rect(0,0,W,H,'F');doc.setDrawColor(26,106,255);doc.setLineWidth(0.8);doc.line(20,32,W-20,32);doc.setFontSize(28);doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.text('SKYE',20,26);doc.setFontSize(7);doc.setTextColor(120,150,200);doc.setFont('helvetica','normal');doc.text('Digital Solutions',20,31);doc.setFontSize(8);doc.text(new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'}),W-20,26,{align:'right'});doc.text('Loja: '+(currentUser?.email||'—'),W-20,31,{align:'right'});doc.setFontSize(20);doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.text('RELATÓRIO DE DESEMPENHO',W/2,H/2-16,{align:'center'});doc.setFontSize(10);doc.setTextColor(64,224,255);doc.setFont('helvetica','normal');doc.text(d.label.toUpperCase(),W/2,H/2,{align:'center'});const kpis=[{l:'Faturamento',v:'R$ '+d.faturamento.toLocaleString('pt-BR'),c:[34,197,94]},{l:'Pedidos',v:String(d.pedidos),c:[26,106,255]},{l:'Ticket Médio',v:'R$ '+d.ticket.toFixed(2).replace('.',','),c:[64,224,255]},{l:'Clientes',v:String(d.clientes),c:[168,85,247]}];const cW=(W-50)/4;kpis.forEach((k,i)=>{const cx=20+i*(cW+3.3);doc.setFillColor(10,14,35);doc.roundedRect(cx,H-65,cW,38,4,4,'F');doc.setFillColor(...k.c);doc.roundedRect(cx,H-65,cW,2,1,1,'F');doc.setFontSize(12);doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.text(k.v,cx+cW/2,H-49,{align:'center'});doc.setFontSize(7);doc.setTextColor(120,150,200);doc.setFont('helvetica','normal');doc.text(k.l,cx+cW/2,H-38,{align:'center'});});doc.setFontSize(7);doc.setTextColor(120,150,200);doc.text('Gerado pelo SKYE · '+new Date().toLocaleString('pt-BR'),W/2,H-8,{align:'center'});doc.save(`SKYE_${periodoAtivo}_${new Date().toISOString().slice(0,10)}.pdf`);btn.textContent='✓ PDF Gerado!';setTimeout(()=>{btn.textContent='Exportar PDF';btn.disabled=false;},2500);}
+function atualizarPreviewConfig(){document.getElementById('prevNome').textContent=document.getElementById('cfgNome')?.value||'—';document.getElementById('prevRodape').textContent=(document.getElementById('cfgEnd')?.value||'Endereço')+' · '+(document.getElementById('cfgTel')?.value||'Telefone');document.getElementById('prevTempo').textContent='Entrega: '+(document.getElementById('cfgTempo')?.value||'—')+' min';}
+['cfgNome','cfgTel','cfgEnd','cfgTempo'].forEach(id=>document.getElementById(id)?.addEventListener('input',atualizarPreviewConfig));
+async function carregarConfig(){const{data}=await sb.from('configuracoes').select('nome_loja,telefone,endereco,tempo_entrega,loja_aberta,slogan,instagram').maybeSingle();if(!data)return;if(data.nome_loja)document.getElementById('cfgNome').value=data.nome_loja;if(data.telefone)document.getElementById('cfgTel').value=data.telefone;if(data.endereco)document.getElementById('cfgEnd').value=data.endereco;if(data.tempo_entrega)document.getElementById('cfgTempo').value=data.tempo_entrega;if(data.slogan)document.getElementById('cfgSlogan').value=data.slogan;if(data.instagram)document.getElementById('cfgInstagram').value=data.instagram;aplicarStatusLoja(data.loja_aberta??false);atualizarPreviewConfig();document.getElementById('cfgSyncBanner').style.display='flex';}
+async function salvarConfig(){const nome=(document.getElementById('cfgNome')?.value||'').trim();if(!nome){toast('Informe o nome da loja.','error');return;}const btn=document.querySelector('[onclick="salvarConfig()"]');if(btn){btn.disabled=true;btn.innerHTML='<div class="spinner"></div>Salvando...';}try{const{error}=await sb.from('configuracoes').upsert({id:1,nome_loja:nome,telefone:document.getElementById('cfgTel')?.value.trim()||null,endereco:document.getElementById('cfgEnd')?.value.trim()||null,tempo_entrega:parseInt(document.getElementById('cfgTempo')?.value||'0')||null,slogan:document.getElementById('cfgSlogan')?.value.trim()||null,instagram:document.getElementById('cfgInstagram')?.value.trim().replace(/^@/,'')||null},{onConflict:'id'});if(error)throw error;document.getElementById('cfgSyncBanner').style.display='flex';toast('✅ Configurações salvas!','success',4000);atualizarPreviewConfig();}catch(e){toast('Erro: '+e.message,'error');}finally{if(btn){btn.disabled=false;btn.innerHTML='Salvar Alterações';}}}
+</script>
+</body>
+</html>
