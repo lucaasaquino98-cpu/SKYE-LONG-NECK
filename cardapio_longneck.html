@@ -1382,7 +1382,9 @@ function aplicarLogo(src) {
 // ── CONFIGURAÇÕES ──
 async function carregarConfiguracoes() {
   try {
-    const { data } = await sb.from('configuracoes').select('*').eq('id', 1).single();
+    const { data, error } = await sb.from('configuracoes').select('*').eq('id', 1).single();
+    console.log('[CFG] data:', JSON.stringify(data));
+    console.log('[CFG] error:', error);
     if (!data) return;
     const nome = data.nome_loja || 'Long Neck';
     document.getElementById('storeName').textContent = nome;
@@ -1399,6 +1401,8 @@ async function carregarConfiguracoes() {
     const footer = document.getElementById('storeFooter');
     const temEndereco = data.endereco && data.endereco.trim();
     const temTel      = data.telefone  && data.telefone.trim();
+    console.log('[CFG] endereco:', data.endereco, '| telefone:', data.telefone);
+    console.log('[CFG] temEndereco:', temEndereco, '| temTel:', temTel);
 
     if (temEndereco || temTel) {
       footer.style.display = '';
