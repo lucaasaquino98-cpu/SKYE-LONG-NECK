@@ -1644,11 +1644,15 @@ function abrirCarrinho() {
   renderCarrinho();
   document.getElementById('cartOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
+  const cta = document.getElementById('floatCartCta');
+  if (cta) cta.style.display = 'none';
 }
 function fecharCarrinho(e) {
   if (e && e.target !== document.getElementById('cartOverlay')) return;
   document.getElementById('cartOverlay').classList.remove('open');
   document.body.style.overflow = '';
+  const cta = document.getElementById('floatCartCta');
+  if (cta && carrinho.length > 0) cta.style.display = 'flex';
 }
 function renderCarrinho() {
   const el = document.getElementById('cartItems');
@@ -1694,10 +1698,14 @@ function abrirCheckout() {
   irParaEtapa(1); carregarBairros();
   document.getElementById('checkoutScreen').classList.add('open');
   document.body.style.overflow = 'hidden';
+  const cta = document.getElementById('floatCartCta');
+  if (cta) cta.style.display = 'none';
 }
 function fecharCheckout() {
   document.getElementById('checkoutScreen').classList.remove('open');
   document.body.style.overflow = '';
+  const cta = document.getElementById('floatCartCta');
+  if (cta && carrinho.length > 0) cta.style.display = 'flex';
 }
 function checkoutVoltar() {
   if (checkoutEtapa <= 1) { fecharCheckout(); return; }
@@ -1714,6 +1722,7 @@ function irParaEtapa(n) {
   document.getElementById('resumoTotalPgto').textContent = `R$ ${fmt(totalGeral)}`;
 
   if (n===2||n===1) renderResumoItens();
+  if (n===3) { renderResumoEntrega(); renderGradePagamento(); }
   document.querySelectorAll('.etapa').forEach(e => e.classList.remove('active'));
   document.getElementById(`etapa${n}`).classList.add('active');
   document.getElementById('progressFill').style.width = PROGRESSO[n]||'33%';
@@ -2054,6 +2063,8 @@ async function enviarPedido() {
 
   window.open('https://wa.me/' + CFG.whatsapp + '?text=' + encodeURIComponent(msg), '_blank');
   carrinho = []; atualizarBadge(); irParaEtapa(4);
+  const cta = document.getElementById('floatCartCta');
+  if (cta) cta.style.display = 'none';
 }
 function novosPedido() { fecharCheckout(); }
 function finalizarPedido() { fecharCarrinho(); abrirCheckout(); }
