@@ -488,6 +488,104 @@ body::before {
 
 .pb-safe { height:32px; }
 
+/* ── RODAPÉ ── */
+.store-footer {
+  margin-top: 32px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.footer-inner {
+  padding: 24px 20px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.footer-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.footer-logo-wrap {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  background: #111;
+  border: 1px solid rgba(200,34,42,0.25);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.footer-logo-wrap img { width:100%; height:100%; object-fit:contain; }
+.footer-brand {
+  font-family: var(--font-d);
+  font-size: 20px;
+  letter-spacing: 1px;
+  color: var(--text);
+}
+.footer-divider {
+  height: 1px;
+  background: var(--border);
+}
+.footer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.footer-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-family: var(--font-b);
+  font-weight: 400;
+  line-height: 1.4;
+}
+.footer-info-item svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--accent);
+  opacity: .8;
+}
+.footer-info-item a {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color .18s;
+}
+.footer-info-item a:hover { color: var(--text); }
+.footer-copy {
+  font-size: 11px;
+  color: rgba(122,117,112,0.55);
+  font-family: var(--font-b);
+  letter-spacing: .3px;
+  padding-top: 4px;
+}
+
+/* Desktop footer */
+@media (min-width: 768px) {
+  .footer-inner {
+    padding: 20px 24px 24px;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0;
+  }
+  .footer-logo-row { flex: 0 0 auto; margin-right: 20px; }
+  .footer-divider { display: none; }
+  .footer-info {
+    flex-direction: row;
+    flex: 1;
+    gap: 20px;
+    align-items: center;
+  }
+  .footer-copy {
+    flex: 0 0 100%;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    margin-top: 10px;
+    text-align: center;
+  }
+}
+
 /* ── DESKTOP STYLES ── */
 @media (min-width: 768px) {
   body { max-width: 1200px; margin: 0 auto; }
@@ -1191,6 +1289,34 @@ select.ck-input { appearance:none; -webkit-appearance:none; cursor:pointer; }
   </div><!-- /checkout-inner-wrap -->
 </div>
 
+<!-- RODAPÉ -->
+<footer class="store-footer" id="storeFooter" style="display:none;">
+  <div class="footer-inner">
+    <div class="footer-logo-row">
+      <div class="footer-logo-wrap">
+        <img id="footerLogoImg" src="" alt="Long Neck" style="display:none;">
+      </div>
+      <span class="footer-brand" id="footerBrand">Long Neck</span>
+    </div>
+    <div class="footer-divider"></div>
+    <div class="footer-info">
+      <div class="footer-info-item" id="footerEnderecoRow" style="display:none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+        </svg>
+        <span id="footerEndereco"></span>
+      </div>
+      <div class="footer-info-item" id="footerTelRow" style="display:none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.22 1.2 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09a16 16 0 006 6l.56-.56a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
+        </svg>
+        <a id="footerTel" href="#"></a>
+      </div>
+    </div>
+    <div class="footer-copy">© <span id="footerAno"></span> <span id="footerCopyBrand">Long Neck</span> · Todos os direitos reservados</div>
+  </div>
+</footer>
+
 <!-- TOAST -->
 <div class="toast-container" id="toastContainer"></div>
 
@@ -1267,6 +1393,38 @@ async function carregarConfiguracoes() {
       document.getElementById('heroTitle').textContent   = data.banner_titulo;
       document.getElementById('heroSub').textContent     = data.banner_sub || 'Kits & Bebidas para o seu churrasco';
       if (data.banner_badge) document.getElementById('heroBadge').textContent = data.banner_badge;
+    }
+
+    // ── RODAPÉ ──
+    const footer = document.getElementById('storeFooter');
+    const temEndereco = data.endereco && data.endereco.trim();
+    const temTel      = data.telefone  && data.telefone.trim();
+
+    if (temEndereco || temTel) {
+      footer.style.display = '';
+
+      // Logo no rodapé
+      const fLogoImg = document.getElementById('footerLogoImg');
+      if (fLogoImg && LOGO_BASE64) { fLogoImg.src = LOGO_BASE64; fLogoImg.style.display = ''; }
+
+      // Nome no rodapé
+      document.getElementById('footerBrand').textContent     = nome;
+      document.getElementById('footerCopyBrand').textContent = nome;
+      document.getElementById('footerAno').textContent       = new Date().getFullYear();
+
+      if (temEndereco) {
+        document.getElementById('footerEndereco').textContent = data.endereco.trim();
+        document.getElementById('footerEnderecoRow').style.display = 'flex';
+      }
+      if (temTel) {
+        const tel = data.telefone.trim();
+        const telLink = document.getElementById('footerTel');
+        telLink.textContent = tel;
+        // Monta link: se parecer número, usa tel:
+        const digitos = tel.replace(/\D/g,'');
+        telLink.href = digitos.length >= 8 ? `tel:+55${digitos}` : `tel:${tel}`;
+        document.getElementById('footerTelRow').style.display = 'flex';
+      }
     }
   } catch(e) { console.warn('Config:', e.message); }
 }
@@ -1635,6 +1793,25 @@ function ouvirRealtime() {
     if(d.loja_aberta!==undefined){lojaAberta=d.loja_aberta;atualizarStatusLoja();}
     if(d.nome_loja) document.getElementById('storeName').textContent=d.nome_loja;
     if(d.pix_chave) CFG.pixChave=d.pix_chave;
+    // Atualiza rodapé em tempo real
+    if(d.endereco!==undefined){
+      const row=document.getElementById('footerEnderecoRow');
+      if(d.endereco&&d.endereco.trim()){document.getElementById('footerEndereco').textContent=d.endereco.trim();row.style.display='flex';}
+      else{row.style.display='none';}
+    }
+    if(d.telefone!==undefined){
+      const row=document.getElementById('footerTelRow');
+      if(d.telefone&&d.telefone.trim()){
+        const tel=d.telefone.trim(), digitos=tel.replace(/\D/g,'');
+        const el=document.getElementById('footerTel');
+        el.textContent=tel; el.href=digitos.length>=8?`tel:+55${digitos}`:`tel:${tel}`;
+        row.style.display='flex';
+      } else{row.style.display='none';}
+    }
+    if(d.nome_loja){document.getElementById('footerBrand').textContent=d.nome_loja;document.getElementById('footerCopyBrand').textContent=d.nome_loja;}
+    // Mostra/esconde footer
+    const temDados=document.getElementById('footerEnderecoRow').style.display!=='none'||document.getElementById('footerTelRow').style.display!=='none';
+    document.getElementById('storeFooter').style.display=temDados?'':'none';
   }).subscribe();
   sb.channel('rt-produtos').on('postgres_changes',{event:'*',schema:'public',table:'produtos'},async()=>{
     await carregarProdutos(); renderCategorias();
