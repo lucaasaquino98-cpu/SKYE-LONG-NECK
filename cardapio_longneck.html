@@ -761,6 +761,62 @@ select.ck-input { appearance:none; -webkit-appearance:none; cursor:pointer; }
 .info-row-icon { flex-shrink:0; font-size:14px; margin-top:1px; }
 .info-row-text { color:var(--muted); line-height:1.4; }
 .info-row-text strong { color:var(--text); font-weight:600; }
+
+/* ── SOCIAL BAR (header) ── */
+.social-bar {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 16px 10px;
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+}
+.social-bar.visible { display: flex; }
+.social-link {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; letter-spacing: .4px;
+  color: rgba(255,255,255,.65);
+  text-decoration: none;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,.12);
+  transition: color .18s, border-color .18s, background .18s;
+}
+.social-link:hover { color: #fff; border-color: rgba(255,255,255,.3); background: rgba(255,255,255,.06); }
+.social-link svg { flex-shrink: 0; }
+.social-link.insta { color: rgba(228,64,95,.85); border-color: rgba(228,64,95,.25); }
+.social-link.insta:hover { color: #e4405f; border-color: rgba(228,64,95,.5); background: rgba(228,64,95,.07); }
+.social-link.face  { color: rgba(66,103,178,.85); border-color: rgba(66,103,178,.3); }
+.social-link.face:hover  { color: #4267B2; border-color: rgba(66,103,178,.55); background: rgba(66,103,178,.07); }
+.social-link.wapp  { color: rgba(37,211,102,.85); border-color: rgba(37,211,102,.25); }
+.social-link.wapp:hover  { color: #25D366; border-color: rgba(37,211,102,.5); background: rgba(37,211,102,.07); }
+.social-link.tikt  { color: rgba(255,255,255,.7); border-color: rgba(255,255,255,.15); }
+.social-link.tikt:hover  { color: #fff; border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.07); }
+
+/* ── FOOTER SOCIAL ── */
+.footer-social {
+  display: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.footer-social.visible { display: flex; }
+.footer-social-link {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 600;
+  color: rgba(255,255,255,.6);
+  text-decoration: none;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  transition: color .18s, border-color .18s;
+}
+.footer-social-link:hover { color: #fff; border-color: rgba(255,255,255,.3); }
+.footer-social-link.insta:hover { color: #e4405f; }
+.footer-social-link.face:hover  { color: #4267B2; }
+.footer-social-link.wapp:hover  { color: #25D366; }
+.footer-social-link.tikt:hover  { color: #69C9D0; }
 </style>
 </head>
 <body>
@@ -798,6 +854,10 @@ select.ck-input { appearance:none; -webkit-appearance:none; cursor:pointer; }
   </div>
   <div class="cat-bar" id="catBar">
     <button class="cat-pill active" data-cat="todos" onclick="filtrarCategoria('todos',this)">Tudo</button>
+  </div>
+  <!-- BARRA DE REDES SOCIAIS -->
+  <div class="social-bar" id="socialBar">
+    <!-- links injetados via JS -->
   </div>
 </header>
 
@@ -1080,6 +1140,10 @@ select.ck-input { appearance:none; -webkit-appearance:none; cursor:pointer; }
         <a id="footerTel" href="#"></a>
       </div>
     </div>
+    <!-- REDES SOCIAIS NO RODAPÉ -->
+    <div class="footer-social" id="footerSocial">
+      <!-- links injetados via JS -->
+    </div>
     <div class="footer-copy">© <span id="footerAno"></span> <span id="footerCopyBrand">Long Neck</span> · Todos os direitos reservados</div>
   </div>
 </footer>
@@ -1143,6 +1207,70 @@ function aplicarLogo(src) {
   img.style.display = '';
 }
 
+// ── HELPER: monta link de rede social ──
+function buildSocialLink(url, type) {
+  if (!url || !url.trim()) return null;
+  let href = url.trim();
+  // Garante que tem protocolo
+  if (!/^https?:\/\//i.test(href) && !href.startsWith('//')) {
+    if (type === 'whatsapp') {
+      const digits = href.replace(/\D/g,'');
+      href = `https://wa.me/${digits.startsWith('55') ? digits : '55' + digits}`;
+    } else {
+      href = 'https://' + href;
+    }
+  }
+  const icons = {
+    instagram: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>`,
+    facebook:  `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>`,
+    whatsapp:  `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>`,
+    tiktok:    `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12a4 4 0 104 4V4a5 5 0 005 5"/></svg>`,
+  };
+  const labels = { instagram: 'Instagram', facebook: 'Facebook', whatsapp: 'WhatsApp', tiktok: 'TikTok' };
+  return { href, icon: icons[type] || '', label: labels[type] || type, type };
+}
+
+// ── APLICA redes sociais no header e rodapé ──
+function aplicarRedesSociais(data) {
+  const tiposHeader = ['instagram','facebook','whatsapp','tiktok'];
+  const tiposFooter = ['instagram','facebook','whatsapp','tiktok'];
+  // Campos possíveis no banco (vários nomes aceitos)
+  const fieldMap = {
+    instagram: ['instagram','instagram_url','instagram_link','link_instagram'],
+    facebook:  ['facebook','facebook_url','facebook_link','link_facebook'],
+    whatsapp:  ['whatsapp_social','whatsapp_link','link_whatsapp','whatsapp_url'],
+    tiktok:    ['tiktok','tiktok_url','tiktok_link','link_tiktok'],
+  };
+
+  const links = [];
+  for (const type of tiposHeader) {
+    const fields = fieldMap[type];
+    let val = null;
+    for (const f of fields) { if (data[f]) { val = data[f]; break; } }
+    const link = buildSocialLink(val, type);
+    if (link) links.push(link);
+  }
+
+  // Header social bar
+  const bar = document.getElementById('socialBar');
+  if (bar) {
+    bar.innerHTML = links.map(l =>
+      `<a href="${l.href}" target="_blank" rel="noopener" class="social-link ${l.type.substring(0,4)}">${l.icon}${l.label}</a>`
+    ).join('');
+    bar.classList.toggle('visible', links.length > 0);
+  }
+
+  // Footer social
+  const fsocial = document.getElementById('footerSocial');
+  if (fsocial) {
+    fsocial.innerHTML = links.map(l =>
+      `<a href="${l.href}" target="_blank" rel="noopener" class="footer-social-link ${l.type.substring(0,4)}">${l.icon}${l.label}</a>`
+    ).join('');
+    fsocial.classList.toggle('visible', links.length > 0);
+  }
+  return links.length;
+}
+
 async function carregarConfiguracoes() {
   try {
     const { data } = await sb.from('configuracoes').select('*').eq('id', 1).single();
@@ -1160,7 +1288,8 @@ async function carregarConfiguracoes() {
     const footer = document.getElementById('storeFooter');
     const temEndereco = data.endereco && data.endereco.trim();
     const temTel      = data.telefone  && data.telefone.trim();
-    if (temEndereco || temTel) {
+    const temSocial   = aplicarRedesSociais(data);
+    if (temEndereco || temTel || temSocial) {
       footer.removeAttribute('style');
       const fLogoImg = document.getElementById('footerLogoImg');
       if (fLogoImg && LOGO_BASE64) { fLogoImg.src = LOGO_BASE64; fLogoImg.style.display = ''; }
@@ -1554,8 +1683,13 @@ function ouvirRealtime() {
       } else{row.style.display='none';}
     }
     if(d.nome_loja){document.getElementById('footerBrand').textContent=d.nome_loja;document.getElementById('footerCopyBrand').textContent=d.nome_loja;}
-    const temDados=document.getElementById('footerEnderecoRow').style.display!=='none'||document.getElementById('footerTelRow').style.display!=='none';
-    document.getElementById('storeFooter').style.display=temDados?'':'none';
+    // Redes sociais
+    const socialFields = ['instagram','instagram_url','instagram_link','link_instagram','facebook','facebook_url','facebook_link','link_facebook','whatsapp_social','whatsapp_link','link_whatsapp','whatsapp_url','tiktok','tiktok_url','tiktok_link','link_tiktok'];
+    if (socialFields.some(f => f in d)) aplicarRedesSociais(d);
+    const temDados = document.getElementById('footerEnderecoRow').style.display !== 'none'
+      || document.getElementById('footerTelRow').style.display !== 'none'
+      || (document.getElementById('footerSocial') && document.getElementById('footerSocial').classList.contains('visible'));
+    document.getElementById('storeFooter').style.display = temDados ? '' : 'none';
   }).subscribe();
   sb.channel('rt-produtos').on('postgres_changes',{event:'*',schema:'public',table:'produtos'},async()=>{
     await carregarProdutos(); renderCategorias();
