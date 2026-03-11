@@ -1207,55 +1207,23 @@ function aplicarLogo(src) {
   img.style.display = '';
 }
 
-// ── HELPER: monta link de rede social ──
-function buildSocialLink(url, type) {
-  if (!url || !url.trim()) return null;
-  let href = url.trim();
-  // Garante que tem protocolo
-  if (!/^https?:\/\//i.test(href) && !href.startsWith('//')) {
-    if (type === 'whatsapp') {
-      const digits = href.replace(/\D/g,'');
-      href = `https://wa.me/${digits.startsWith('55') ? digits : '55' + digits}`;
-    } else {
-      href = 'https://' + href;
-    }
-  }
-  const icons = {
-    instagram: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>`,
-    facebook:  `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>`,
-    whatsapp:  `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>`,
-    tiktok:    `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12a4 4 0 104 4V4a5 5 0 005 5"/></svg>`,
-  };
-  const labels = { instagram: 'Instagram', facebook: 'Facebook', whatsapp: 'WhatsApp', tiktok: 'TikTok' };
-  return { href, icon: icons[type] || '', label: labels[type] || type, type };
-}
-
 // ── APLICA redes sociais no header e rodapé ──
+// O painel salva apenas o campo "instagram" (sem o @)
 function aplicarRedesSociais(data) {
-  const tiposHeader = ['instagram','facebook','whatsapp','tiktok'];
-  const tiposFooter = ['instagram','facebook','whatsapp','tiktok'];
-  // Campos possíveis no banco (vários nomes aceitos)
-  const fieldMap = {
-    instagram: ['instagram','instagram_url','instagram_link','link_instagram'],
-    facebook:  ['facebook','facebook_url','facebook_link','link_facebook'],
-    whatsapp:  ['whatsapp_social','whatsapp_link','link_whatsapp','whatsapp_url'],
-    tiktok:    ['tiktok','tiktok_url','tiktok_link','link_tiktok'],
-  };
-
+  const instaVal = (data.instagram || '').trim().replace(/^@/, '');
   const links = [];
-  for (const type of tiposHeader) {
-    const fields = fieldMap[type];
-    let val = null;
-    for (const f of fields) { if (data[f]) { val = data[f]; break; } }
-    const link = buildSocialLink(val, type);
-    if (link) links.push(link);
+
+  if (instaVal) {
+    const href = instaVal.startsWith('http') ? instaVal : `https://instagram.com/${instaVal}`;
+    const icon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>`;
+    links.push({ href, icon, label: '@' + instaVal, cls: 'insta' });
   }
 
   // Header social bar
   const bar = document.getElementById('socialBar');
   if (bar) {
     bar.innerHTML = links.map(l =>
-      `<a href="${l.href}" target="_blank" rel="noopener" class="social-link ${l.type.substring(0,4)}">${l.icon}${l.label}</a>`
+      `<a href="${l.href}" target="_blank" rel="noopener" class="social-link ${l.cls}">${l.icon}${l.label}</a>`
     ).join('');
     bar.classList.toggle('visible', links.length > 0);
   }
@@ -1264,10 +1232,11 @@ function aplicarRedesSociais(data) {
   const fsocial = document.getElementById('footerSocial');
   if (fsocial) {
     fsocial.innerHTML = links.map(l =>
-      `<a href="${l.href}" target="_blank" rel="noopener" class="footer-social-link ${l.type.substring(0,4)}">${l.icon}${l.label}</a>`
+      `<a href="${l.href}" target="_blank" rel="noopener" class="footer-social-link ${l.cls}">${l.icon}${l.label}</a>`
     ).join('');
     fsocial.classList.toggle('visible', links.length > 0);
   }
+
   return links.length;
 }
 
@@ -1285,6 +1254,12 @@ async function carregarConfiguracoes() {
       document.getElementById('heroSub').textContent     = data.banner_sub || 'Kits & Bebidas para o seu churrasco';
       if (data.banner_badge) document.getElementById('heroBadge').textContent = data.banner_badge;
     }
+    // Slogan → subtítulo do banner se não houver banner_titulo personalizado
+    if (!data.banner_titulo && data.slogan) {
+      document.getElementById('heroSub').textContent = data.slogan;
+    }
+    // Redes sociais
+    aplicarRedesSociais(data);
     const footer = document.getElementById('storeFooter');
     const temEndereco = data.endereco && data.endereco.trim();
     const temTel      = data.telefone  && data.telefone.trim();
@@ -1683,9 +1658,8 @@ function ouvirRealtime() {
       } else{row.style.display='none';}
     }
     if(d.nome_loja){document.getElementById('footerBrand').textContent=d.nome_loja;document.getElementById('footerCopyBrand').textContent=d.nome_loja;}
-    // Redes sociais
-    const socialFields = ['instagram','instagram_url','instagram_link','link_instagram','facebook','facebook_url','facebook_link','link_facebook','whatsapp_social','whatsapp_link','link_whatsapp','whatsapp_url','tiktok','tiktok_url','tiktok_link','link_tiktok'];
-    if (socialFields.some(f => f in d)) aplicarRedesSociais(d);
+    // Redes sociais — campo instagram (igual ao painel)
+    if ('instagram' in d) aplicarRedesSociais(d);
     const temDados = document.getElementById('footerEnderecoRow').style.display !== 'none'
       || document.getElementById('footerTelRow').style.display !== 'none'
       || (document.getElementById('footerSocial') && document.getElementById('footerSocial').classList.contains('visible'));
