@@ -1401,7 +1401,7 @@ async function carregarConfiguracoes() {
     const temTel      = data.telefone  && data.telefone.trim();
 
     if (temEndereco || temTel) {
-      footer.style.display = '';
+      footer.removeAttribute('style');
 
       // Logo no rodapé
       const fLogoImg = document.getElementById('footerLogoImg');
@@ -1414,16 +1414,19 @@ async function carregarConfiguracoes() {
 
       if (temEndereco) {
         document.getElementById('footerEndereco').textContent = data.endereco.trim();
-        document.getElementById('footerEnderecoRow').style.display = 'flex';
+        const endRow = document.getElementById('footerEnderecoRow');
+        endRow.removeAttribute('style');
+        endRow.style.display = 'flex';
       }
       if (temTel) {
         const tel = data.telefone.trim();
         const telLink = document.getElementById('footerTel');
         telLink.textContent = tel;
-        // Monta link: se parecer número, usa tel:
         const digitos = tel.replace(/\D/g,'');
         telLink.href = digitos.length >= 8 ? `tel:+55${digitos}` : `tel:${tel}`;
-        document.getElementById('footerTelRow').style.display = 'flex';
+        const telRow = document.getElementById('footerTelRow');
+        telRow.removeAttribute('style');
+        telRow.style.display = 'flex';
       }
     }
   } catch(e) { console.warn('Config:', e.message); }
