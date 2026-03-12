@@ -474,6 +474,7 @@ body::before {
 }
 @keyframes slideUp { from{transform:translateY(100%);} to{transform:translateY(0);} }
 .modal-img { aspect-ratio:4/3; background:var(--bg2); position:relative; overflow:hidden; flex-shrink:0; }
+.modal-img.modal-img--compact { aspect-ratio:16/7; max-height:160px; }
 .modal-img img { height:100%; }
 .modal-img-placeholder { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:64px; opacity:.3; }
 .modal-close {
@@ -1699,6 +1700,15 @@ function abrirModal(id) {
   const extrasSection = document.getElementById('extrasSection');
   extrasSection.style.display = isKit ? '' : 'none';
   if (isKit) renderExtras();
+  // Foto compacta para Kits (para extras ficarem visíveis)
+  const modalImg = document.getElementById('modalImg');
+  modalImg.classList.toggle('modal-img--compact', isKit);
+  // Texto menor para Kits
+  document.getElementById('modalNome').style.fontSize  = isKit ? '20px' : '';
+  document.getElementById('modalDesc').style.fontSize  = isKit ? '12px' : '';
+  document.getElementById('modalDesc').style.marginBottom = isKit ? '6px' : '';
+  document.getElementById('modalPreco').style.fontSize = isKit ? '22px' : '';
+  document.getElementById('modalPreco').style.marginBottom = isKit ? '8px' : '';
   const imgEl = document.getElementById('modalImg');
   const placeholder = document.getElementById('modalImgPlaceholder');
   imgEl.querySelectorAll('img').forEach(i => i.remove());
