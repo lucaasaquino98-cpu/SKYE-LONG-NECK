@@ -497,6 +497,58 @@ body::before {
 }
 .obs-input:focus { border-color:rgba(200,34,42,.5); }
 
+/* ── EXTRAS ── */
+.extras-section { margin-top:16px; }
+.extras-header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:10px;
+}
+.extras-label {
+  font-family:var(--font-c); font-size:11px; font-weight:700;
+  letter-spacing:1px; text-transform:uppercase; color:var(--muted);
+}
+.extras-contador {
+  font-family:var(--font-c); font-size:11px; font-weight:700;
+  letter-spacing:.5px; color:var(--accent);
+  background:rgba(200,34,42,.1); padding:2px 8px; border-radius:20px;
+}
+.extra-item {
+  display:flex; align-items:center; gap:12px;
+  padding:11px 0; border-bottom:1px solid var(--border);
+}
+.extra-item:last-child { border-bottom:none; }
+.extra-info { flex:1; min-width:0; }
+.extra-nome {
+  font-family:var(--font-c); font-size:14px; font-weight:700;
+  color:var(--text); text-transform:uppercase; letter-spacing:.3px;
+}
+.extra-preco {
+  font-size:12px; color:var(--muted); margin-top:1px;
+}
+.extra-ctrl { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.extra-qty-val {
+  font-family:var(--font-d); font-size:16px;
+  min-width:18px; text-align:center; color:var(--text);
+}
+.extra-btn {
+  width:28px; height:28px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; font-weight:700; line-height:1;
+  transition:all .15s; flex-shrink:0;
+}
+.extra-btn-add {
+  background:var(--accent); color:#fff;
+  border:none;
+}
+.extra-btn-add:hover { background:var(--accent2); }
+.extra-btn-add:disabled { background:var(--surface2); color:var(--muted); cursor:not-allowed; }
+.extra-btn-rem {
+  background:transparent; color:var(--accent);
+  border:1.5px solid var(--accent);
+  display:none;
+}
+.extra-btn-rem.visible { display:flex; }
+
 .modal-footer {
   padding:14px 18px 28px; display:flex; align-items:center; gap:12px;
   border-top:1px solid var(--border); background:var(--surface); flex-shrink:0;
@@ -1097,6 +1149,14 @@ select.ck-input { appearance:none; -webkit-appearance:none; cursor:pointer; }
       <div class="modal-price" id="modalPreco"></div>
       <div class="obs-label">Observação</div>
       <textarea class="obs-input" id="modalObs" rows="2" placeholder="Ex: sem cebola, ponto da carne…"></textarea>
+      <!-- EXTRAS (apenas categoria Kits) -->
+      <div class="extras-section" id="extrasSection" style="display:none">
+        <div class="extras-header">
+          <span class="extras-label">Deseja algum item extra?</span>
+          <span class="extras-contador" id="extrasContador">0 / 5</span>
+        </div>
+        <div id="extrasLista"></div>
+      </div>
       <div style="height:14px"></div>
     </div>
     <div class="modal-footer">
@@ -1569,16 +1629,76 @@ function buscar(q) {
   }, 280);
 }
 
+// ── EXTRAS ──
+const EXTRAS_LISTA = [
+  { id:'e1', nome:'Sal com Chimichurri', preco:10.00 },
+  { id:'e2', nome:'Palitos de Churrasco', preco:12.00 },
+  { id:'e3', nome:'Farofa Santa',         preco:20.00 },
+  { id:'e4', nome:'Sal Grosso',           preco:6.00  },
+  { id:'e5', nome:'Copos Descartáveis',   preco:11.00 },
+];
+const EXTRAS_LIMITE = 5;
+const EXTRAS_CATEGORIA = 'kits'; // comparação case-insensitive
+let extrasAtual = {}; // { id: qty }
+
+function extrasTotal() {
+  return Object.values(extrasAtual).reduce((a, v) => a + v, 0);
+}
+
+function extrasPrecoTotal() {
+  return EXTRAS_LISTA.reduce((a, e) => a + (extrasAtual[e.id] || 0) * e.preco, 0);
+}
+
+function renderExtras() {
+  const lista = document.getElementById('extrasLista');
+  const contador = document.getElementById('extrasContador');
+  const total = extrasTotal();
+  contador.textContent = `${total} / ${EXTRAS_LIMITE}`;
+  lista.innerHTML = EXTRAS_LISTA.map(e => {
+    const qty = extrasAtual[e.id] || 0;
+    const maxAtingido = total >= EXTRAS_LIMITE && qty === 0;
+    return `
+    <div class="extra-item">
+      <div class="extra-info">
+        <div class="extra-nome">${e.nome}</div>
+        <div class="extra-preco">+ R$ ${fmt(e.preco)}</div>
+      </div>
+      <div class="extra-ctrl">
+        <button class="extra-btn extra-btn-rem ${qty > 0 ? 'visible' : ''}" onclick="alterarExtra('${e.id}',-1)" ${qty===0?'disabled':''}>−</button>
+        ${qty > 0 ? `<span class="extra-qty-val">${qty}</span>` : ''}
+        <button class="extra-btn extra-btn-add" onclick="alterarExtra('${e.id}',1)" ${maxAtingido?'disabled':''}>+</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function alterarExtra(id, d) {
+  const atual = extrasAtual[id] || 0;
+  const totalAtual = extrasTotal();
+  if (d > 0 && totalAtual >= EXTRAS_LIMITE) return;
+  const novo = Math.max(0, atual + d);
+  if (novo === 0) delete extrasAtual[id];
+  else extrasAtual[id] = novo;
+  renderExtras();
+  atualizarBtnAdd();
+}
+
 // ── MODAL ──
 function abrirModal(id) {
   const p = produtos.find(x => x.id === id);
   if (!p) return;
   produtoAtual = p; qtyAtual = 1;
+  extrasAtual = {};
   document.getElementById('modalNome').textContent  = p[CFG.campoNome];
   document.getElementById('modalDesc').textContent  = p[CFG.campoDesc] || '';
   document.getElementById('modalPreco').textContent = `R$ ${fmt(p[CFG.campoPreco])}`;
   document.getElementById('modalObs').value         = '';
   document.getElementById('modalQty').textContent   = 1;
+  // Extras: só para categoria Kits
+  const isKit = (p[CFG.campoCat] || '').toLowerCase() === EXTRAS_CATEGORIA;
+  const extrasSection = document.getElementById('extrasSection');
+  extrasSection.style.display = isKit ? '' : 'none';
+  if (isKit) renderExtras();
   const imgEl = document.getElementById('modalImg');
   const placeholder = document.getElementById('modalImgPlaceholder');
   imgEl.querySelectorAll('img').forEach(i => i.remove());
@@ -1608,7 +1728,7 @@ function ajustarQty(d) {
 }
 function atualizarBtnAdd() {
   if (!produtoAtual) return;
-  const total = (produtoAtual[CFG.campoPreco] || 0) * qtyAtual;
+  const total = ((produtoAtual[CFG.campoPreco] || 0) + extrasPrecoTotal()) * qtyAtual;
   document.getElementById('btnAddCartLabel').textContent = `Adicionar · R$ ${fmt(total)}`;
 }
 
@@ -1616,7 +1736,22 @@ function atualizarBtnAdd() {
 function adicionarAoCarrinho() {
   if (!produtoAtual) return;
   const obs = document.getElementById('modalObs').value.trim();
-  carrinho.push({ id:produtoAtual.id, nome:produtoAtual[CFG.campoNome], preco:produtoAtual[CFG.campoPreco]||0, imagem:produtoAtual[CFG.campoImg]||null, qty:qtyAtual, obs, _uid:Date.now() });
+  const precoBase = produtoAtual[CFG.campoPreco] || 0;
+  const precoExtras = extrasPrecoTotal();
+  // Monta lista de extras selecionados
+  const extrasSel = EXTRAS_LISTA
+    .filter(e => extrasAtual[e.id])
+    .map(e => ({ nome: e.nome, qty: extrasAtual[e.id], preco: e.preco }));
+  carrinho.push({
+    id: produtoAtual.id,
+    nome: produtoAtual[CFG.campoNome],
+    preco: precoBase + precoExtras,
+    imagem: produtoAtual[CFG.campoImg] || null,
+    qty: qtyAtual,
+    obs,
+    extras: extrasSel,
+    _uid: Date.now()
+  });
   atualizarBadge(); fecharModal(); toast(`${produtoAtual[CFG.campoNome]} adicionado ✓`);
 }
 function atualizarBadge() {
@@ -1669,6 +1804,7 @@ function renderCarrinho() {
       <div class="cart-item-img">${img}</div>
       <div class="cart-item-info">
         <div class="cart-item-name">${item.nome}</div>
+        ${item.extras && item.extras.length ? `<div class="cart-item-obs">➕ ${item.extras.map(e=>`${e.qty}x ${e.nome}`).join(', ')}</div>` : ''}
         ${item.obs ? `<div class="cart-item-obs">📝 ${item.obs}</div>` : ''}
         <div class="cart-item-qty">
           <button class="cart-qty-btn" onclick="mudarQtyCarrinho(${idx},-1)">−</button>
@@ -2033,9 +2169,15 @@ async function enviarPedido() {
   const enderecoFinal = tipoEntrega === 'delivery' ? endPartes : 'Retirada no local';
 
   const pgtoLabels = { dinheiro: '💵 Dinheiro', debito: '💳 Débito', credito: '💳 Crédito', pix: '📱 PIX' };
-  const linhas = itens.map(i =>
-    '▸ ' + i.quantidade + 'x ' + i.nome + ' — R$ ' + fmt(i.precoFinal) + (i.observacao ? '\n  📝 ' + i.observacao : '')
-  );
+  const linhas = itens.map(i => {
+    const itemCart = carrinho.find(c => c.nome === i.nome);
+    let linha = '▸ ' + i.quantidade + 'x ' + i.nome + ' — R$ ' + fmt(i.precoFinal);
+    if (i.observacao) linha += '\n  📝 ' + i.observacao;
+    if (itemCart && itemCart.extras && itemCart.extras.length) {
+      linha += '\n  ➕ ' + itemCart.extras.map(e => `${e.qty}x ${e.nome}`).join(', ');
+    }
+    return linha;
+  });
 
   let obs = 'Entrega: ' + (tipoEntrega === 'delivery' ? 'Delivery — ' + bairro : 'Retirada') + ' | Pagamento: ' + (pgtoLabels[formaPagamento] || formaPagamento);
   if (formaPagamento === 'dinheiro' && precisaTroco === 'sim' && troco) obs += ' | Troco p/ R$ ' + troco;
