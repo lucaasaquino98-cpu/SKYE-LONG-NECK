@@ -1191,7 +1191,13 @@ select.ck-input { appearance:none; -webkit-appearance:none; cursor:pointer; }
   <div class="cart-drawer">
     <div class="cart-header">
       <span class="cart-title">Meu Pedido</span>
-      <button class="cart-close" onclick="fecharCarrinho()">✕</button>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button id="btnLimparCarrinho" onclick="limparCarrinho()" style="display:none;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;border:1px solid rgba(200,34,42,0.4);background:rgba(200,34,42,0.1);color:var(--accent);font-family:var(--font-c);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;transition:all .2s;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          Limpar
+        </button>
+        <button class="cart-close" onclick="fecharCarrinho()">✕</button>
+      </div>
     </div>
     <div class="cart-items" id="cartItems"></div>
     <div class="cart-footer" id="cartFooter" style="display:none;">
@@ -1580,10 +1586,7 @@ function cardGrid(p) {
   <div class="card" onclick="abrirModal(${p.id})">
     <div class="card-img">
       ${img}
-      <div class="card-price-overlay">
-        <small>a partir de</small>
-        R$ ${fmt(p[CFG.campoPreco])}
-      </div>
+      
     </div>
     <div class="card-body">
       <div class="card-name">${p[CFG.campoNome]}</div>
@@ -1657,7 +1660,7 @@ const EXTRAS_LISTA = [
   id: "e3",
   nome: "santa farofa",
   preco: 10.00,
-  img: "https://raw.githubusercontent.com/lucaasaquino98-cpu/SKYE-LONG-NECK/main/santa%20farofa.jpeg"
+  img: "https:/raw.githubusercontent.com/lucaasaquino98-cpu/SKYE-LONG-NECK/main/santa%20farofa.jpeg"
   },
 ]
 
@@ -1824,13 +1827,23 @@ function fecharCarrinho(e) {
   const cta = document.getElementById('floatCartCta');
   if (cta && carrinho.length > 0) cta.style.display = 'flex';
 }
+function limparCarrinho() {
+  if (!carrinho.length) return;
+  carrinho = [];
+  atualizarBadge();
+  renderCarrinho();
+  toast('Carrinho limpo 🗑️');
+}
 function renderCarrinho() {
   const el = document.getElementById('cartItems');
   const footer = document.getElementById('cartFooter');
+  const btnLimpar = document.getElementById('btnLimparCarrinho');
   if (!carrinho.length) {
+    if (btnLimpar) btnLimpar.style.display = 'none';
     el.innerHTML = `<div class="empty-cart"><div class="empty-cart-icon">🛒</div><p>Nenhum item ainda</p></div>`;
     footer.style.display = 'none'; return;
   }
+  if (btnLimpar) btnLimpar.style.display = 'flex';
   footer.style.display = '';
   el.innerHTML = carrinho.map((item,idx) => {
     const img = item.imagem ? `<img src="${item.imagem}" alt="${item.nome}" style="width:100%;height:100%;object-fit:cover;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;opacity:.3">🍖</div>`;
